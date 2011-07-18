@@ -13,13 +13,13 @@ module SA
     system("sudo addgroup --system #{name} > /dev/null 2>&1")
   end
 
-  def SA.grant_dir_ownership (user, group, dir)
+  def SA.grant_ownership (user, group, dir)
     #XXX: group name should be constant
     system("sudo chown -R #{user}:#{group} #{dir}")
     system("sudo chmod -R go-rwx #{dir}")
   end
 
-  def SA.take_dir_ownership (dir)
+  def SA.take_ownership (dir)
     #XXX: group name should be constant
     system("sudo chown -R #{Process.uid}:#{Process.gid} #{dir}")
   end
