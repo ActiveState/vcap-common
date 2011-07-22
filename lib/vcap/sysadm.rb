@@ -16,7 +16,7 @@ module SA
     system("sudo addgroup --system #{name} > /dev/null 2>&1")
   end
 
-  def SA.grant_ownership (user, group)
+  def SA.grant_ownership (user, dir)
     system("#{SYSADM} grant #{user} #{dir}")
   end
 
@@ -40,6 +40,8 @@ module SA
     { :dir => nil, :env => nil, :limits => nil, :close_stdin => false}.merge! options
 
     exec_operation = proc do |process|
+      # set the minimal usable PATH
+      process.send_data("export PATH=/usr/bin:/bin\n")
       process.send_data("cd #{options[:dir]}\n") if options[:dir]
       # we want to limit all processes potentially running user code, without exceptions
       limits = {:mem => ONE_GIG, :fds => 4096, :disk => ONE_GIG}.merge! (options[:limits] || {})
@@ -55,11 +57,15 @@ module SA
 
       # XXX: value may not contain single quotes; see
       # http://bugs.activestate.com/show_bug.cgi?id=90720#c9
-      (options[:env] || {}).each { |k,v| process.send_data("export #{k}=\"#{v}\"\n") }
+      (options[:env] || {}).each do |k,v| 
+        export_line = "export #{k}=#{v}\n"
+        process.send_data(export_line)
+      end
 
       command = "#{command} < /dev/null" if options[:close_stdin]
-      process.send_data("#{command}\n")
-      process.send_data("exit\n")
+      #XXX: is there any reason they used explicit exit instead of exec?
+      process.send_data("exec #{command}\n")
+      #process.send_data("exit\n")
       process
     end
 
@@ -70,5 +76,9 @@ module SA
               exec_operation, exit_callback)
   end
 
+  def SA.instance_pid (instance_dir)
+    pid = `#{SYSADM} getpid #{instance_dir}`.strip
+    pid == "" ? nil : pid
+  end
 end
 
