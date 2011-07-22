@@ -37,7 +37,7 @@ module SA
   end
 
   def SA.run_as (user, command, options={}, &block)
-    { :dir => nil, :env => nil, :limits => nil, :async => true}.merge! options
+    { :dir => nil, :env => nil, :limits => nil, :close_stdin => false}.merge! options
 
     exec_operation = proc do |process|
       process.send_data("cd #{options[:dir]}\n") if options[:dir]
@@ -52,8 +52,13 @@ module SA
       # File size to complete disk usage
       process.send_data("ulimit -f #{limits[:disk]} 2> /dev/null\n") 
       process.send_data("umask 077\n")
+
+      # XXX: value may not contain single quotes; see
+      # http://bugs.activestate.com/show_bug.cgi?id=90720#c9
       (options[:env] || {}).each { |k,v| process.send_data("export #{k}=\"#{v}\"\n") }
-      process.send_data(command + " 2>&1\n")
+
+      command = "#{command} < /dev/null" if options[:close_stdin]
+      process.send_data("#{command}\n")
       process.send_data("exit\n")
       process
     end
