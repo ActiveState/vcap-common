@@ -40,7 +40,6 @@ GEM
     rspec-expectations (2.5.0)
       diff-lcs (~> 1.1.2)
     rspec-mocks (2.5.0)
-    smart_colored (1.0.2)
     thin (1.2.11)
       daemons (>= 1.0.9)
       eventmachine (>= 0.12.6)
@@ -53,5 +52,4 @@ PLATFORMS
 DEPENDENCIES
   em-http-request (~> 1.0.0.beta3)
   rspec
-  smart_colored
   vcap_common!
