@@ -77,7 +77,8 @@ module SA
         export_line = "export #{k}=#{v}\n"
         process.send_data(export_line)
       end
-      process.send_data("exec #{command}\n")
+      process.send_data("#{command}\n") 
+      process.send_data("exit\n") # because. (long story)
       process
     end
 
