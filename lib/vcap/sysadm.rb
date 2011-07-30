@@ -3,6 +3,7 @@ SYSADM = "~/stackato/tools/sysadm"
 
 module SA
   def SA.sys (cmd)
+    #puts "=============> SA.sys #{cmd}"
     out = `#{cmd} 2>&1`
     raise out unless $?.to_i == 0
     out
@@ -67,7 +68,7 @@ module SA
       process.send_data("export PATH=/usr/bin:/bin\n")
       process.send_data("cd #{opts[:dir]}\n") if opts[:dir]
       # we want to limit all processes potentially running user code, without exceptions
-      limits = {:mem => ONE_GIG, :fds => 4096, :disk => ONE_GIG}.merge! (opts[:limits] || {})
+      limits = {:mem => ONE_GIG, :fds => 4096, :disk => ONE_GIG}.merge(opts[:limits] || {})
       # ulimit -m takes kb, soft enforce
       process.send_data("ulimit -m #{(limits[:mem]/1024).to_i} 2> /dev/null\n")  
       # virtual memory at 3G, this will be enforced
@@ -76,7 +77,7 @@ module SA
       process.send_data("ulimit -u 512 2> /dev/null\n") # processes/threads
       # File size to complete disk usage
       process.send_data("ulimit -f #{limits[:disk]} 2> /dev/null\n") 
-      process.send_data("umask 077\n")
+      process.send_data("umask 027\n") # the group is forced to be "stackato"
       # XXX: value may not contain single quotes; see
       # http://bugs.activestate.com/show_bug.cgi?id=90720#c9
       (opts[:env] || {}).each do |k,v| 
@@ -112,8 +113,5 @@ module SA
     pid
   end
 
-  def SA.instance_pid (instance_dir)
-    sys("#{SYSADM} getpid #{instance_dir}").strip.to_i
-  end
 end
 
