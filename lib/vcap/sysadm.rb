@@ -2,6 +2,12 @@ ONE_GIG = 1024*1024*1024
 SYSADM = "~/stackato/tools/sysadm"
 
 module SA
+  def SA.sys (cmd)
+    out = `#{cmd} 2>&1`
+    raise out unless $?.to_i == 0
+    out
+  end
+
   def SA.add_user (uid, username, group)
     #XXX: remove when caller refactoring is done
     raise "This should never be done online. Prepopulate users (in stackato-admin?)"
@@ -17,23 +23,23 @@ module SA
   end
 
   def SA.grant_ownership (user, dir)
-    system("#{SYSADM} grant #{user} #{dir}")
+    sys "#{SYSADM} grant #{user} #{dir}"
   end
 
   def SA.take_ownership (dir)
-    system("#{SYSADM} take #{dir}")
+    sys "#{SYSADM} take #{dir}"
   end
 
   def SA.kill_user_procs (username)
-    system("#{SYSADM} kill #{username}")
+    sys "#{SYSADM} kill #{username}"
   end
 
   def SA.cleanup_instance_dir (dir)
-    system("#{SYSADM} rminst #{dir}")
+    sys "#{SYSADM} rminst #{dir}"
   end
 
   def SA.remove_tmp_dir (dir)
-    system("#{SYSADM} rmtmp #{dir}")
+    sys "#{SYSADM} rmtmp #{dir}"
   end
 
   def SA.lxc (command, *args, &block)
@@ -107,8 +113,7 @@ module SA
   end
 
   def SA.instance_pid (instance_dir)
-    pid = `#{SYSADM} getpid #{instance_dir}`.strip
-    pid == "" ? nil : pid
+    sys("#{SYSADM} getpid #{instance_dir}").strip.to_i
   end
 end
 
