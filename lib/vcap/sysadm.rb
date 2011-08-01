@@ -9,20 +9,6 @@ module SA
     out
   end
 
-  def SA.add_user (uid, username, group)
-    #XXX: remove when caller refactoring is done
-    raise "This should never be done online. Prepopulate users (in stackato-admin?)"
-    system("sudo adduser --system --shell '/bin/sh' --quiet --no-create-home " +
-           "--uid #{uid} --home '/nonexistent' #{username}  > /dev/null 2>&1")
-    system("sudo usermod -g #{group} #{username}  > /dev/null 2>&1")
-  end
-
-  def SA.create_group (name)
-    #XXX: remove when caller refactoring is done
-    raise "This should never be done online. Pre-create the group (in stackato-admin?)"
-    system("sudo addgroup --system #{name} > /dev/null 2>&1")
-  end
-
   def SA.grant_ownership (user, dir)
     sys "#{SYSADM} grant #{user} #{dir}"
   end
