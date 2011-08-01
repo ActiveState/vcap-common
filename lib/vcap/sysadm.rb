@@ -2,10 +2,13 @@ ONE_GIG = 1024*1024*1024
 SYSADM = "~/stackato/tools/sysadm"
 
 module SA
+  class Error < Exception
+  end
+  
   def SA.sys (cmd)
     #puts "=============> SA.sys #{cmd}"
     out = `#{cmd} 2>&1`
-    raise out unless $?.to_i == 0
+    raise Error(out) unless $?.to_i == 0
     out
   end
 
