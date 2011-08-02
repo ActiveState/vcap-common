@@ -9,6 +9,15 @@ module VCAP
 
   A_ROOT_SERVER = '198.41.0.4'
 
+  def self.config_file(config, default_dir)
+    puts "################## VCAP_CONFIG_DIR=#{ENV['VCAP_CONFIG_DIR']}, config=#{config}"
+    if ENV['VCAP_CONFIG_DIR']
+      "#{ENV['VCAP_CONFIG_DIR']}/#{config}"
+    else
+      File.expand_path(config, default_dir)
+    end
+  end
+
   def self.local_ip(route = A_ROOT_SERVER)
     route ||= A_ROOT_SERVER
     orig, Socket.do_not_reverse_lookup = Socket.do_not_reverse_lookup, true
