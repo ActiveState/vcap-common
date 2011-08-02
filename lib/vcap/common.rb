@@ -10,7 +10,6 @@ module VCAP
   A_ROOT_SERVER = '198.41.0.4'
 
   def self.config_file(config, default_dir)
-    puts "################## VCAP_CONFIG_DIR=#{ENV['VCAP_CONFIG_DIR']}, config=#{config}"
     if ENV['VCAP_CONFIG_DIR']
       "#{ENV['VCAP_CONFIG_DIR']}/#{config}"
     else
