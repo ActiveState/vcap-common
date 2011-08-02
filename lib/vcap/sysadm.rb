@@ -8,7 +8,7 @@ module SA
   def SA.sys (cmd)
     #puts "=============> SA.sys #{cmd}"
     out = `#{cmd} 2>&1`
-    raise Error(out) unless $?.to_i == 0
+    raise Error.new(out) unless $?.to_i == 0
     out
   end
 
