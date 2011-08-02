@@ -6,7 +6,7 @@ require 'socket'
 # VMware's Cloud Application Platform
 
 module VCAP
-
+  #XXX: what is this?
   A_ROOT_SERVER = '198.41.0.4'
 
   def self.config_file(config, default_dir)
