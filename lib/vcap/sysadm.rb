@@ -45,14 +45,18 @@ module SA
   def SA.run_as (user, command, opts={}, &block)
     opts = {:dir => nil, :env => nil, :limits => nil, :timeout => 0}.merge(opts)
 
-    timer = nil
-    terminate = nil
-    terminated = false
+    # Timeout process termination:
+    # 1. We can't simply kill all user processes with kill_user_procs(user)
+    #    because this will terminate the app, too. 
+    # 2. Closing the /bin/sh's stdin in hope it would send SIGTERM to its 
+    #    children didn't work, I think because a forked shell is not a session
+    #    owner.
+    # 3. Calling Process.kill(SIG*, pid) doesn't make sense because the process
+    #    belongs to a different user.
+    # Conclusion:
+    #    This should happen from inside of the child process.
 
     exec_operation = proc do |process|
-      terminate = proc do
-        process.close_connection_after_writing()
-      end
       # set the minimal usable PATH
       process.send_data("export PATH=/usr/bin:/bin\n")
       process.send_data("cd #{opts[:dir]}\n") if opts[:dir]
@@ -67,38 +71,26 @@ module SA
       # File size to complete disk usage
       process.send_data("ulimit -f #{limits[:disk]} 2> /dev/null\n") 
       process.send_data("umask 027\n") # the group is forced to be "stackato"
-      # XXX: value may not contain single quotes; see
-      # http://bugs.activestate.com/show_bug.cgi?id=90720#c9
       (opts[:env] || {}).each do |k,v| 
         export_line = "export #{k}=#{v}\n"
         process.send_data(export_line)
       end
+
+      # timeout now works with the sigal mask being restored in sysadm
+      timeout = opts[:timeout] || 0
+      command = "timeout #{timeout} #{command}" if timeout > 0
+
       process.send_data("#{command}\n") 
       process.send_data("exit\n") # because. (long story)
       process
     end
 
-    exit_callback = proc do |output, status|
-      EM.cancel_timer(timer) if timer
-      if terminated
-        output += "\n" if output.length > 0
-        output += "*Terminated by timeout*\n"
-      end
-      block.call(output, status) if block
-    end
-    
-    # it *must* use the three-arg form, otherwise the stderr output gets lost
+    # Unfortunately, an extra shell is necessary here because there is no 
+    # EM.popen3. This means stderr is merged to the caller's stderr unless
+    # redirected inside the child process. Also, stderr redirection works only
+    # with the three-arg form of EM.system.
     pid = EM.system("/bin/sh", "-c", "env -i #{SYSADM} runas #{user} 2>&1",
-                    exec_operation, exit_callback)
-
-    timeout = opts[:timeout] || 0
-    if timeout > 0
-      timer = EM.add_timer(timeout) do
-        timer = nil
-        terminated = true
-        terminate.call
-      end
-    end
+                    exec_operation, block)
     pid
   end
 
