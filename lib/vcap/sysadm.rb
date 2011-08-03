@@ -56,6 +56,12 @@ module SA
     # Conclusion:
     #    This should happen from inside of the child process.
 
+    if not "\"'".include? command[0]  # wrap in quotes if necessary
+      command = command.sub("'", "\\\\'")  # escape single quotes
+      command = "'#{command}'"
+    end
+    command = "sh -c #{command}"  # run with `sh -c ...` to allow pipes, quotes, etc..
+
     exec_operation = proc do |process|
       # set the minimal usable PATH
       process.send_data("export PATH=/usr/bin:/bin\n")
