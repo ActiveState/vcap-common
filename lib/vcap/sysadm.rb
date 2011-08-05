@@ -38,8 +38,8 @@ module SA
     `#{SYSADM} runlxc create_container #{id} #{user[:user]} #{user[:uid]}`.strip # this returns the full directory
   end
 
-  def SA.start_container (id)
-    `#{SYSADM} runlxc start_container #{id}"`.strip # this should return the IP of the container
+  def SA.start_container (id, user)
+    `#{SYSADM} runlxc start_container #{id} #{user[:user]} #{user[:uid]}`.strip # this should return the IP of the container
   end
 
   def SA.stop_container (id)
@@ -54,9 +54,18 @@ module SA
     system("#{SYSADM} runlxc untar_file #{tgz_file} #{untar_to}")
   end
 
-  def SA.runlxc (instance_id, user, cmd, env)
-    File.open( "/tmp/#{instance_id}.env", "w" ) { |file| YAML::dump( env, file ) } #XXX: do I *really* have to do this?
-    `#{SYSADM} runlxc runlxc #{instance_id} #{user[:user]} #{user[:uid]}"#{cmd}"`.strip
+  def SA.runlxc (instance_id, user, cmd, env, &block)
+    begin
+      File.open( "/tmp/#{instance_id}.env", "w" ) { |file| YAML::dump( env, file ) } #XXX: do I *really* have to do this?
+    rescue
+      # don't kill me!
+    end
+
+    exec_operation = proc { |process| process }
+    exit_callback = block || (proc do |o,s| nil end)
+
+    EM.system("/bin/sh", "-c", "#{SYSADM} runlxc runlxc #{instance_id} #{user[:user]} #{user[:uid]} \"#{cmd}\" 2>&1",
+              exec_operation, exit_callback)
   end
 
   def SA.install_forwarding (port, lxcip, lxcport)
