@@ -54,17 +54,13 @@ module SA
     system("#{SYSADM} runlxc untar_file #{tgz_file} #{untar_to}")
   end
 
-  def SA.runlxc (instance_id, user, cmd, env, &block)
-    begin
-      File.open( "/tmp/#{instance_id}.env", "w" ) { |file| YAML::dump( env, file ) } #XXX: do I *really* have to do this?
-    rescue
-      # don't kill me!
-    end
+  def SA.runlxc (instance_id, user, dir, cmd, env, &block)
+    File.open( "/tmp/#{instance_id}.env", "w" ) { |file| YAML.dump( env, file ) } #XXX: do I *really* have to do this?
 
     exec_operation = proc { |process| process }
     exit_callback = block || (proc do |o,s| nil end)
 
-    EM.system("/bin/sh", "-c", "#{SYSADM} runlxc runlxc #{instance_id} #{user[:user]} #{user[:uid]} \"#{cmd}\" 2>&1",
+    EM.system("/bin/sh", "-c", "#{SYSADM} runlxc runlxc #{instance_id} #{user[:user]} #{user[:uid]} #{dir} \"#{cmd}\" 2>&1",
               exec_operation, exit_callback)
   end
 
