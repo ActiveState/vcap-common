@@ -34,8 +34,8 @@ module SA
     sys "#{SYSADM} rmtmp #{dir}"
   end
 
-  def SA.create_container (id, user) #TODO: add memory and disk limits
-    `#{SYSADM} runlxc create_container #{id} #{user[:user]} #{user[:uid]}`.strip # this returns the full directory
+  def SA.create_container (id, mem_limit, user) 
+    `#{SYSADM} runlxc create_container #{id} #{mem_limit} #{user[:user]} #{user[:uid]}`.strip # this returns the full directory
   end
 
   def SA.start_container (id, user)
@@ -70,16 +70,6 @@ module SA
 
   def SA.remove_forwarding (port, lxcip, lxcport)
     system("#{SYSADM} runlxc remove_forwarding #{port} #{lxcip} #{lxcport}")
-  end
-
-  def SA.lxc (command, *args, &block)
-    exec_operation = proc { |process| process }
-    exit_callback = block || (proc do |o,s| nil end)
-    
-    #XXX: potential vulnerability: unescaped user data.
-    #     it might make sense to send args through stdin
-    EM.system("/bin/sh", "-c", "#{SYSADM} runlxc #{user} #{args.join(' ')} 2>&1",
-              exec_operation, exit_callback)
   end
 
   def SA.run_as (user, command, opts={}, &block)
