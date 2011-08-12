@@ -26,7 +26,11 @@ module VCAP
      interface_strings.each do |interface_string|
        interface = {}
        interface[:name] = /^(\w+)\s/.match(interface_string)[1]
-       interface[:ip] = /inet addr:(.*?)\s/.match(interface_string)[1]
+       begin
+         interface[:ip] = /inet addr:(.*?)\s/.match(interface_string)[1]
+       rescue
+         interface[:ip] = ""
+       end
        interfaces[interface[:name]] = interface 
      end
 
