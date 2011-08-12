@@ -36,7 +36,7 @@ module VCAP
     end
   end
 
-  def self.local_ip(route) # XXX: we discard this
+  def self.local_ip(route = "") # XXX: we discard this
     interfaces = self.ifconfig_hash
     interfaces["eth0"][:ip] || "127.0.0.1"
   end
