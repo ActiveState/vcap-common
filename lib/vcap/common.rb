@@ -17,12 +17,28 @@ module VCAP
     end
   end
 
-  def self.local_ip(route = A_ROOT_SERVER)
-    route ||= A_ROOT_SERVER
-    orig, Socket.do_not_reverse_lookup = Socket.do_not_reverse_lookup, true
-    UDPSocket.open {|s| s.connect(route, 1); s.addr.last }
-  ensure
-    Socket.do_not_reverse_lookup = orig
+  def self.ifconfig_hash # why public?
+    begin
+     ifconfig_input = `/sbin/ifconfig -a`
+     interfaces = {}
+     interface_strings = ifconfig_input.split("\n\n")
+          
+     interface_strings.each do |interface_string|
+       interface = {}
+       interface[:name] = /^(\w+)\s/.match(interface_string)[1]
+       interface[:ip] = /inet addr:(.*?)\s/.match(interface_string)[1]
+       interfaces[interface[:name]] = interface 
+     end
+
+     return interfaces
+    rescue
+     return ""
+    end
+  end
+
+  def self.local_ip(route) # XXX: we discard this
+    interfaces = self.ifconfig_hash
+    interfaces["eth0"][:ip] || "127.0.0.1"
   end
 
   def self.secure_uuid
