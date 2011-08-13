@@ -39,7 +39,8 @@ module SA
   end
 
   def SA.start_container (id, user)
-    `#{SYSADM} runlxc start_container #{id} #{user[:user]} #{user[:uid]}`.strip # this should return the IP of the container
+    myuid = Process.euid
+    `#{SYSADM} runlxc start_container #{id} #{myuid}`.strip # this should return the IP of the container
   end
 
   def SA.stop_container (id)
