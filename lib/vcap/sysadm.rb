@@ -43,6 +43,10 @@ module SA
     `#{SYSADM} runlxc start_container #{id} #{myuid}`.strip # this should return the IP of the container
   end
 
+  def SA.create_containers_dir
+    system("#{SYSADM} runlxc create_containers_dir")
+  end
+
   def SA.stop_container (id)
     system("#{SYSADM} runlxc stop_container #{id}")
   end
