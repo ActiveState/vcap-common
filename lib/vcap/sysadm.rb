@@ -60,7 +60,9 @@ module SA
   end
 
   def SA.runlxc (instance_id, user, dir, cmd, env, &block)
-    File.open( "/tmp/#{instance_id}.env", "w" ) { |file| YAML.dump( env, file ) } #XXX: do I *really* have to do this?
+    # HACK: Pass environment data to the `lxctrl` process.
+    # FIXME: find a better way to do this.
+    File.open( "/tmp/#{instance_id}.env", "w" ) { |file| YAML.dump( env, file ) } 
 
     exec_operation = proc { |process| process }
     exit_callback = block || (proc do |o,s| nil end)
@@ -77,6 +79,9 @@ module SA
     system("#{SYSADM} runlxc remove_forwarding #{port} #{lxcip} #{lxcport}")
   end
 
+  # Run a command on host with imposed ulimits.
+  # This is currently only used for running staging process.
+  # TODO: remove this function once we move staging to LXC.
   def SA.run_as (user, command, opts={}, &block)
     opts = {:dir => nil, :env => nil, :limits => nil, :timeout => 0}.merge(opts)
 
