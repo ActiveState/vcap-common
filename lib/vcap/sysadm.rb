@@ -52,7 +52,11 @@ module SA
   end
 
   def SA.destroy_container (id)
-    system("#{SYSADM} runlxc destroy_container #{id}")
+    exec_operation = proc { |process| process }
+    exit_callback = proc do |o,s| nil end
+
+    EM.system("/bin/sh", "-c", "#{SYSADM} runlxc destroy_container #{id} 2>&1",
+              exec_operation, exit_callback)
   end
  
   def SA.untar (tgz_file, untar_to)
