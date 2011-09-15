@@ -34,21 +34,13 @@ module SA
     sys "#{SYSADM} rmtmp #{dir}"
   end
 
-  def SA.create_container (id) 
-    `#{SYSADM} runlxc create_container #{id}`.strip # this returns the full directory
+  def SA.create_container (id, mem_limit, user) 
+    `#{SYSADM} runlxc create_container #{id} #{mem_limit} #{user[:user]} #{user[:uid]}`.strip # this returns the full directory
   end
 
-  def SA.start_container (id)
-    system("#{SYSADM} runlxc start_container #{id}")
-  end
-
-  def SA.set_mem_limit (id, mem_limit)
-    system("#{SYSADM} runlxc set_mem_limit #{id} #{mem_limit}")
-  end
-  
-  def SA.wait_for_ip (id)
+  def SA.start_container (id, user)
     myuid = Process.euid
-    `#{SYSADM} runlxc wait_for_ip #{id} #{myuid}`.strip
+    `#{SYSADM} runlxc start_container #{id} #{myuid}`.strip # this should return the IP of the container
   end
 
   def SA.cleanup_containers_dir
