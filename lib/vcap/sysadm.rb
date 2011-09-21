@@ -55,6 +55,10 @@ module SA
     system("#{SYSADM} runlxc create_containers_dir")
   end
 
+  def SA.get_pid(id)
+    `#{SYSADM} runlxc get_pid #{id}`.strip
+  end
+
   def SA.ensure_accessible(id, timeout)
     `#{SYSADM} runlxc ensure_accessible #{id} #{timeout} 2>&1`
     return $? == 0 ? true : false
