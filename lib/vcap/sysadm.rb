@@ -88,7 +88,10 @@ module SA
     exec_operation = proc { |process| process }
     exit_callback = block || (proc do |o,s| nil end)
 
-    EM.system("/bin/sh", "-c", "#{SYSADM} runlxc runlxc #{instance_id} #{user[:user]} #{user[:uid]} #{dir} \"#{cmd}\" 2>&1",
+    # escape all quotes
+    cmd.gsub!('"', '\"')
+
+    EM.system("/bin/sh", "-c", "#{SYSADM} runlxc runlxc #{instance_id} #{user[:user]} #{user[:uid]} #{dir} #{cmd} 2>&1",
               exec_operation, exit_callback)
   end
 
