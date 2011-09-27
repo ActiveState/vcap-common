@@ -80,6 +80,12 @@ module SA
     system("#{SYSADM} runlxc untar_file #{tgz_file} #{untar_to}")
   end
 
+  def SA.run_chroot(id, cmd)
+    cmd.gsub!('"', '\"')
+  
+    `#{SYSADM} runlxc run_chroot #{id} #{cmd}`.strip
+  end
+
   def SA.runlxc (instance_id, user, dir, cmd, env, &block)
     # HACK: Pass environment data to the `lxctrl` process.
     # FIXME: find a better way to do this.
