@@ -109,6 +109,15 @@ module SA
     system("#{SYSADM} runlxc remove_forwarding #{port} #{lxcip} #{lxcport}")
   end
 
+  def SA.convert_full_path_to_relative(path)
+    matched = /\/lxc\/containers\/stackato-.*?(\/.*)/.match(path)
+    matched[1]
+  end
+
+  def SA.convert_relative_path_to_full(containerid, path)
+    "/lxc/containers/stackato-#{containerid}#{path}"
+  end
+
   # Run a command on host with imposed ulimits.
   # This is currently only used for running staging process.
   # TODO: remove this function once we move staging to LXC.
