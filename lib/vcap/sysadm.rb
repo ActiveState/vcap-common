@@ -86,7 +86,7 @@ module SA
     `#{SYSADM} runlxc run_chroot #{id} #{cmd}`.strip
   end
 
-  def SA.runlxc (instance_id, user, dir, cmd, env, &block)
+  def SA.runlxc (instance_id, dir, cmd, env, &block)
     # HACK: Pass environment data to the `lxctrl` process.
     # FIXME: find a better way to do this.
     File.open( "/tmp/#{instance_id}.env", "w" ) { |file| YAML.dump( env, file ) } 
@@ -97,7 +97,7 @@ module SA
     # escape all quotes
     cmd.gsub!('"', '\"')
 
-    EM.system("/bin/sh", "-c", "#{SYSADM} runlxc runlxc #{instance_id} #{user[:user]} #{user[:uid]} #{dir} #{cmd} 2>&1",
+    EM.system("/bin/sh", "-c", "#{SYSADM} runlxc runlxc #{instance_id} #{dir} #{cmd} 2>&1",
               exec_operation, exit_callback)
   end
 
@@ -116,6 +116,11 @@ module SA
 
   def SA.convert_relative_path_to_full(containerid, path)
     "/lxc/containers/stackato-#{containerid}#{path}"
+  end
+
+  def SA.create_staging_dir(path)
+    myuid = Process.euid
+    system("#{SYSADM} runlxc create_staging_dir #{myuid} #{path}")
   end
 
   # Run a command on host with imposed ulimits.
