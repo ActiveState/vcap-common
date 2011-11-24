@@ -110,12 +110,12 @@ module SA
   end
 
   def SA.convert_full_path_to_relative(path)
-    matched = /\/lxc\/containers\/stackato-.*?(\/.*)/.match(path)
+    matched = /\/lxc\/containers\/stackato-.*?\/rootfs(\/.*)/.match(path)
     matched[1]
   end
 
   def SA.convert_relative_path_to_full(containerid, path)
-    "/lxc/containers/stackato-#{containerid}#{path}"
+    "/lxc/containers/stackato-#{containerid}/rootfs#{path}"
   end
 
   def SA.create_staging_dir(path)
