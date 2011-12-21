@@ -9,9 +9,11 @@ module VCAP
   #XXX: what is this?
   A_ROOT_SERVER = '198.41.0.4'
 
+  # TODO: this function is no longer needed; can be removed after
+  # changing all the references.
   def self.config_file(config, default_dir)
-    if ENV['VCAP_CONFIG_DIR']
-      "#{ENV['VCAP_CONFIG_DIR']}/#{config}"
+    if ENV['CLOUD_FOUNDRY_CONFIG_PATH']
+      "#{ENV['CLOUD_FOUNDRY_CONFIG_PATH']}/#{config}"
     else
       File.expand_path(config, default_dir)
     end
