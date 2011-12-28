@@ -42,8 +42,12 @@ module VCAP
     end
   end
 
+  # Stackato note: this was added by us, presumably to make the
+  # services (where `local_ip` is used) work well with LXC. The exact
+  # reason is not clear. See commit b3b6a871 in vcap repo.
   def self.local_ip(route = "") # XXX: we discard this
     interfaces = self.ifconfig_hash
+    $stderr.puts "**** ifconfig_hash returned: #{interfaces}"
     begin 
       return interfaces["eth0"][:ip]
     rescue
