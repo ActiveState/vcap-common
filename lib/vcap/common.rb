@@ -160,6 +160,16 @@ module VCAP
     end
   end
 
+  def self.unsymbolize_keys(hash)
+    if hash.is_a? Hash
+      new_hash = {}
+      hash.each {|k, v| new_hash[k.to_s] = unsymbolize_keys(v) }
+      new_hash
+    else
+      hash
+    end
+  end
+
   # Helper for creating logs based on common config options. Returns a logger appending to standard out
   # by default. This is somewhat kitchen-sink, is better than duplicating this code in each component.
   #
