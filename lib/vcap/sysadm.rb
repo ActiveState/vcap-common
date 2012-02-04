@@ -102,5 +102,9 @@ module SA
     myuid = Process.euid
     system("#{SYSADM} runlxc create_staging_dir #{myuid} #{path}")
   end
+  
+  def SA.install_token(containerid, token, cctarget)
+    system("#{SYSADM} runlxc install_token #{containerid} #{token} #{cctarget}")
+  end
 end
 
