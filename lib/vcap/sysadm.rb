@@ -119,5 +119,9 @@ module SA
   def SA.cleanup_filesystem_instance(instance_id)
     system("#{SYSADM} runlxc cleanup_filesystem_instance #{instance_id}")
   end
+  
+  def SA.mount_sshfs(path)
+    system("#{SYSADM} runlxc mount_sshfs #{path}")
+  end
 end
 
