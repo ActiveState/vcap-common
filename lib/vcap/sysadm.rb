@@ -2,6 +2,7 @@ ONE_GIG = 1024*1024*1024
 SYSADM = "~/stackato/tools/sysadm"
 
 require "yaml"
+require "json"
 
 module SA
   class Error < Exception
@@ -102,9 +103,21 @@ module SA
     myuid = Process.euid
     system("#{SYSADM} runlxc create_staging_dir #{myuid} #{path}")
   end
-  
+
   def SA.install_token(containerid, token, cctarget)
     system("#{SYSADM} runlxc install_token #{containerid} #{token} #{cctarget}")
+  end
+
+  def SA.create_filesystem_instance
+    begin
+      return JSON.parse( `#{SYSADM} runlxc create_filesystem_instance`.strip )
+    rescue
+      return nil
+    end
+  end
+
+  def SA.cleanup_filesystem_instance(instance_id)
+    system("#{SYSADM} runlxc cleanup_filesystem_instance #{instance_id}")
   end
 end
 
