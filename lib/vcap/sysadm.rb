@@ -108,9 +108,9 @@ module SA
     system("#{SYSADM} runlxc install_token #{containerid} #{token} #{cctarget}")
   end
 
-  def SA.create_filesystem_instance
+  def SA.create_filesystem_instance(limit)
     begin
-      return JSON.parse( `#{SYSADM} runlxc create_filesystem_instance`.strip )
+      return JSON.parse( `#{SYSADM} runlxc create_filesystem_instance #{limit}`.strip )
     rescue
       return nil
     end
