@@ -123,5 +123,9 @@ module SA
   def SA.mount_sshfs(path)
     system("#{SYSADM} runlxc mount_sshfs #{path}")
   end
+
+  def SA.grant_sudo(id)
+    system("#{SYSADM} runlxc grant_sudo #{id}")
+  end
 end
 
