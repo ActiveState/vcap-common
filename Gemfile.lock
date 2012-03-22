@@ -21,7 +21,7 @@ GEM
     escape_utils (0.2.4)
     eventmachine (0.12.11.cloudfoundry.3)
     json_pure (1.6.5)
-    nats (0.4.22.beta.8)
+    nats (0.4.22)
       daemons (>= 1.1.4)
       eventmachine (>= 0.12.10)
       json_pure (>= 1.6.1)
