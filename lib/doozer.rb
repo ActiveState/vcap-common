@@ -18,7 +18,7 @@ module Doozer
   def self.get_component_config(component_id)
     config = nil
     component_key = component_id.gsub(/\_/, '-')
-    config_path = File.join(COMPONENT_CONFIG_PATH, component_key)
+    config_path = File.join(COMPONENT_CONFIG_PATH, component_key, "config", "**")
     EM.run do
       Fraggle.connect(DEFAULT_URI) do |c, err|
         if err
@@ -31,21 +31,26 @@ module Doozer
             else
               ents.each do |e|
                 if not config
-                  config = Hash.new
+                  config = {}
                 end
                 path = config
                 path_parts = e.path.split("/")
-                # remove empty part before first "/"
-                path_parts.shift
+                path_parts.shift # remove empty part before first "/"
+                path_parts.shift # remove "proc"
+                path_parts.shift # remove component_id
+                path_parts.shift # remove "config"
                 # replace dashes with underscores in keys
                 path_parts = path_parts.map{|key| key.gsub(/\-/, '_')}
                 # we won't create a hash for last key
                 last_key = path_parts.pop
                 path_parts.each do |part|
-                  path[part] = Hash.new
-                  path = path[part]
+                  part_sym = part.to_sym
+                  if not path.has_key? part_sym
+                    path[part_sym] = {}
+                  end
+                  path = path[part_sym]
                 end
-                path[last_key] = e.value
+                path[last_key.to_sym] = JSON.load(e.value)
               end
             end
             EM.stop_event_loop
