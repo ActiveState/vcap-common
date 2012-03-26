@@ -15,9 +15,10 @@ module Doozer
     "ca=127.0.0.1:8046"
   ].join("&")
 
-  def self.get_config(component_id)
+  def self.get_component_config(component_id)
     config = nil
-    config_path = File.join(COMPONENT_CONFIG_PATH, component_id)
+    component_key = component_id.gsub(/\_/, '-')
+    config_path = File.join(COMPONENT_CONFIG_PATH, component_key)
     EM.run do
       Fraggle.connect(DEFAULT_URI) do |c, err|
         if err
