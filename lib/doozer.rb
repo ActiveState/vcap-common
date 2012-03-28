@@ -2,6 +2,7 @@
 require 'rubygems'
 require 'eventmachine'
 require 'fraggle'
+require 'fiber'
 
 # In the event of a lost connection, fraggle will attempt
 # other doozers until one accepts or it runs out of options; A NoAddrs
@@ -21,14 +22,15 @@ module Doozer
   end
 
   def self.get_component_config(component_id)
-    config = nil
-    EM.run do
+    f = Fiber.current
+    EM.next_tick do
       Fraggle.connect(DEFAULT_URI) do |c, err|
         if err
           raise err.message
         end
         c.rev do |v|
           req = c.walk(v, File.join(component_config_path(component_id), "**")) do |ents, err|
+            config = nil
             if err
               raise "Fraggle error (" + err.code.to_s + ") " + err.detail.to_s
             else
@@ -39,11 +41,12 @@ module Doozer
                 _stash_component_config_value(config, e)
               end
             end
-            EM.stop_event_loop
+            f.resume config
           end
         end
       end
     end
+    config = Fiber.yield
     return config
   end
 
@@ -87,24 +90,54 @@ module Doozer
     end
   end
 
-  def self.set_component_config_value(component_id, path, key, value)
+  def self.get_component_config_value(component_id, path)
+    doozer_path = File.join(component_config_path(component_id), path.map{|p| p.to_s.gsub(/\_/, '-')})
+
+    f = Fiber.current
     EM.next_tick do
+      # TODO: re-use watcher connection here
       Fraggle.connect(DEFAULT_URI) do |c, err|
         if err
-          raise err.message
+          f.resume(nil, err)
         end
         c.rev do |v|
-          doozer_path = File.join(component_config_path(component_id), (path + [key]).map{|p| p.to_s.gsub(/\_/, '-')})
-          doozer_value = JSON.dump(value)
-          c.set(v, doozer_path, doozer_value) do |e, err|
-            if err
-              raise "Failed to set doozer value " + doozer_path.to_s + " = " + doozer_value.to_s + " " + err.message
-            end
+          c.get(v, doozer_path) do |e, err|
+            f.resume(e, err)
           end
         end
       end
     end
+    e, err = Fiber.yield
+
+    if err
+      raise "Failed to get doozer value " + doozer_path.to_s + " " + err.message
+    end
+    return JSON.load(e.value)
   end
 
+  def self.set_component_config_value(component_id, path, key, value)
+    doozer_path = File.join(component_config_path(component_id), (path + [key]).map{|p| p.to_s.gsub(/\_/, '-')})
+    doozer_value = JSON.dump(value)
+
+    f = Fiber.current
+    EM.next_tick do
+      # TODO: re-use watcher connection here
+      Fraggle.connect(DEFAULT_URI) do |c, err|
+        if err
+          f.resume(nil, err)
+        end
+        c.rev do |v|
+          c.set(v, doozer_path, doozer_value) do |e, err|
+            f.resume(e, err)
+          end
+        end
+      end
+    end
+    e, err = Fiber.yield
+
+    if err
+      raise "Failed to set doozer value " + doozer_path.to_s + " = " + doozer_value.to_s + " " + err.message
+    end
+  end
 end
 
