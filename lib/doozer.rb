@@ -14,10 +14,6 @@ module Doozer
 
   COMPONENT_CONFIG_PATH = "/proc"
 
-  DEFAULT_URI = "doozer:?" + [
-    "ca=127.0.0.1:8046"
-  ].join("&")
-
   def self.component_config_path(component_id)
     component_key = component_id.gsub(/\_/, '-')
     File.join(COMPONENT_CONFIG_PATH, component_key, "config")
@@ -26,12 +22,17 @@ module Doozer
   def self.get_component_config(component_id)
     f = Fiber.current
     EM.next_tick do
-      Fraggle.connect(DEFAULT_URI) do |c, err|
+      # Fraggle will use $DOOZER_URI when no arguments are passed.
+      # pydoozer, and thus kato, will do the same. configuring doozer
+      # for your cluster thus involves managing the $DOOZER_URI
+      # environment variable.
+      Fraggle.connect() do |c, err|
         if err
           raise err.message
         end
         c.rev do |v|
-          req = c.walk(v, File.join(component_config_path(component_id), "**")) do |ents, err|
+          pat = File.join(component_config_path(component_id), "**")
+          req = c.walk(v, pat) do |ents, err|
             config = nil
             if err
               raise "Fraggle error (" + err.code.to_s + ") " + err.detail.to_s
@@ -74,9 +75,23 @@ module Doozer
     return path_parts, key, new_value
   end
 
+  # do the following,
+  #  * setup a persistent connection to doozer
+  #  * register 'component_id' in doozer ephemeral node
+  #  * watch config changes and invoke `callback` if any
   def self.watch_component_config(component_id, config, callback=nil)
     EM.next_tick do
-      Fraggle.connect(DEFAULT_URI) do |c, err|
+      # we are assuming that this block of code is meant to keep a
+      # persistent connection to doozer so that kato can manage the
+      # ephemeral nodes.
+      Fraggle.connect() do |c, err|
+        # name ourself for `kato ls`
+        c.rev do |v|
+          c.set(v, '/eph', component_id) do |e, err|
+            # TODO: what is the best way to handle errors from doozer?
+            puts "doozer error: #{err}"
+          end
+        end
         if err
           raise err.message
         end
@@ -98,7 +113,7 @@ module Doozer
     f = Fiber.current
     EM.next_tick do
       # TODO: re-use watcher connection here
-      Fraggle.connect(DEFAULT_URI) do |c, err|
+      Fraggle.connect() do |c, err|
         if err
           f.resume(nil, err)
         end
@@ -124,7 +139,7 @@ module Doozer
     f = Fiber.current
     EM.next_tick do
       # TODO: re-use watcher connection here
-      Fraggle.connect(DEFAULT_URI) do |c, err|
+      Fraggle.connect() do |c, err|
         if err
           f.resume(nil, err)
         end
