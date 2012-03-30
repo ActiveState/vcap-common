@@ -14,8 +14,12 @@ module Doozer
 
   COMPONENT_CONFIG_PATH = "/proc"
 
+  def self.normalize_component_name(c)
+    c.gsub(/\_/, '-')
+  end
+
   def self.component_config_path(component_id)
-    component_key = component_id.gsub(/\_/, '-')
+    component_key = normalize_component_name(component_id)
     File.join(COMPONENT_CONFIG_PATH, component_key, "config")
   end
 
@@ -80,6 +84,7 @@ module Doozer
   #  * register 'component_id' in doozer ephemeral node
   #  * watch config changes and invoke `callback` if any
   def self.watch_component_config(component_id, config, callback=nil)
+    component_id = normalize_component_name(component_id)
     EM.next_tick do
       # we are assuming that this block of code is meant to keep a
       # persistent connection to doozer so that kato can manage the
