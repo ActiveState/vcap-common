@@ -1,5 +1,5 @@
 ONE_GIG = 1024*1024*1024
-SYSADM = "~/stackato/tools/sysadm"
+SYSADM = "/home/stackato/stackato/tools/sysadm"
 
 require "yaml"
 require "json"
