@@ -15,6 +15,35 @@ module Doozer
 
   COMPONENT_CONFIG_PATH = "/proc"
 
+  @@client = nil
+
+  # setup a persistent connection to doozer
+  def self.client(client_name)
+    if not @@client
+      f = Fiber.current
+      EM.next_tick do
+        Fraggle.connect() do |c, err|
+          if err
+            raise err.message
+          end
+
+          # register 'component_id' in doozer ephemeral node
+          c.rev do |v|
+            c.set(v, '/eph', client_name) do |e, err|
+              if err
+                raise "Doozer: failed to set /eph/#{component_id.to_s} : " + err.message.to_s
+              end
+            end
+          end
+
+          f.resume c
+        end
+      end
+      @@client = Fiber.yield
+    end
+    return @@client
+  end
+
   def self.normalize_component_name(c)
     c.gsub(/\_/, '-')
   end
@@ -25,32 +54,30 @@ module Doozer
   end
 
   def self.get_component_config(component_id)
+
+    c = client(component_id)
+
     f = Fiber.current
     EM.next_tick do
       # Fraggle will use $DOOZER_URI when no arguments are passed.
       # pydoozer, and thus kato, will do the same. configuring doozer
       # for your cluster thus involves managing the $DOOZER_URI
       # environment variable.
-      Fraggle.connect() do |c, err|
-        if err
-          raise err.message
-        end
-        c.rev do |v|
-          pat = File.join(component_config_path(component_id), "**")
-          req = c.walk(v, pat) do |ents, err|
-            config = nil
-            if err
-              raise "Fraggle error (" + err.code.to_s + ") " + err.detail.to_s
-            else
-              ents.each do |e|
-                if not config
-                  config = {}
-                end
-                _stash_component_config_value(config, e)
+      c.rev do |v|
+        pat = File.join(component_config_path(component_id), "**")
+        req = c.walk(v, pat) do |ents, err|
+          config = nil
+          if err
+            raise "Fraggle error (" + err.code.to_s + ") " + err.detail.to_s
+          else
+            ents.each do |e|
+              if not config
+                config = {}
               end
+              _stash_component_config_value(config, e)
             end
-            f.resume config
           end
+          f.resume config
         end
       end
     end
@@ -80,33 +107,23 @@ module Doozer
     return path_parts, key, new_value
   end
 
-  # do the following,
-  #  * setup a persistent connection to doozer
-  #  * register 'component_id' in doozer ephemeral node
-  #  * watch config changes and invoke `callback` if any
+  # watch config changes and invoke `callback` if any
   def self.watch_component_config(component_id, config, callback=nil)
-    component_id = normalize_component_name(component_id)
+
     EM.next_tick do
+
+      c = client(component_id)
+
       # we are assuming that this block of code is meant to keep a
       # persistent connection to doozer so that kato can manage the
       # ephemeral nodes.
-      Fraggle.connect() do |c, err|
-        if err
-          raise "Doozer: connection failed: " + err.message.to_s
-        end
-        # name ourself for `kato ls`
+      c.rev do |v|
         c.rev do |v|
-          c.set(v, '/eph', component_id) do |e, err|
-            if err
-              raise "Doozer: failed to set /eph/#{component_id.to_s} : " + err.message.to_s
-            end
-            c.rev do |v|
-              c.watch(v, File.join(component_config_path(component_id), "**")) do |e, err|
-                path, key, value = _stash_component_config_value(config, e)
-                if callback
-                  callback.call(path, key, value)
-                end
-              end
+          path = File.join(component_config_path(component_id), "**")
+          c.watch(v, path) do |e, err|
+            path, key, value = _stash_component_config_value(config, e)
+            if callback
+              callback.call(path, key, value)
             end
           end
         end
@@ -117,17 +134,13 @@ module Doozer
   def self.get_component_config_value(component_id, path)
     doozer_path = File.join(component_config_path(component_id), path.map{|p| p.to_s.gsub(/\_/, '-')})
 
+    c = client(component_id)
+
     f = Fiber.current
     EM.next_tick do
-      # TODO: re-use watcher connection here
-      Fraggle.connect() do |c, err|
-        if err
-          f.resume(nil, err)
-        end
-        c.rev do |v|
-          c.get(v, doozer_path) do |e, err|
-            f.resume(e, err)
-          end
+      c.rev do |v|
+        c.get(v, doozer_path) do |e, err|
+          f.resume(e, err)
         end
       end
     end
@@ -143,17 +156,13 @@ module Doozer
     doozer_path = File.join(component_config_path(component_id), (path + [key]).map{|p| p.to_s.gsub(/\_/, '-')})
     doozer_value = JSON.dump(value)
 
+    c = client(component_id)
+
     f = Fiber.current
     EM.next_tick do
-      # TODO: re-use watcher connection here
-      Fraggle.connect() do |c, err|
-        if err
-          f.resume(nil, err)
-        end
-        c.rev do |v|
-          c.set(v, doozer_path, doozer_value) do |e, err|
-            f.resume(e, err)
-          end
+      c.rev do |v|
+        c.set(v, doozer_path, doozer_value) do |e, err|
+          f.resume(e, err)
         end
       end
     end
@@ -163,5 +172,6 @@ module Doozer
       raise "Failed to set doozer value " + doozer_path.to_s + " = " + doozer_value.to_s + " " + err.message
     end
   end
+
 end
 
