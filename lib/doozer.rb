@@ -5,6 +5,7 @@ require 'rubygems'
 require 'eventmachine'
 require 'fraggle'
 require 'fiber'
+require 'vcap/logging'
 
 # In the event of a lost connection, fraggle will attempt
 # other doozers until one accepts or it runs out of options; A NoAddrs
@@ -90,21 +91,22 @@ module Doozer
       # persistent connection to doozer so that kato can manage the
       # ephemeral nodes.
       Fraggle.connect() do |c, err|
+        if err
+          raise "Doozer: connection failed: " + err.message.to_s
+        end
         # name ourself for `kato ls`
         c.rev do |v|
           c.set(v, '/eph', component_id) do |e, err|
-            # TODO: what is the best way to handle errors from doozer?
-            puts "doozer error: #{err}"
-          end
-        end
-        if err
-          raise err.message
-        end
-        c.rev do |v|
-          c.watch(v, File.join(component_config_path(component_id), "**")) do |e, err|
-            path, key, value = _stash_component_config_value(config, e)
-            if callback
-              callback.call(path, key, value)
+            if err
+              raise "Doozer: failed to set /eph/#{component_id.to_s} : " + err.message.to_s
+            end
+            c.rev do |v|
+              c.watch(v, File.join(component_config_path(component_id), "**")) do |e, err|
+                path, key, value = _stash_component_config_value(config, e)
+                if callback
+                  callback.call(path, key, value)
+                end
+              end
             end
           end
         end
