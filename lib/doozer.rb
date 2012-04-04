@@ -63,10 +63,14 @@ module Doozer
   def self.get_component_config(component_id)
     path = File.join(component_config_path(component_id), "**")
     if EM.reactor_running?
-      return self._get_component_config_async(component_id, path)
+      config = self._get_component_config_async(component_id, path)
     else
-      return self._get_component_config_blocking(component_id, path)
+      config = self._get_component_config_blocking(component_id, path)
     end
+    if config.nil?
+      raise "Unable to load config for #{component_id} from doozer"
+    end
+    config
   end
 
   def self._get_component_config_async(component_id, path)
