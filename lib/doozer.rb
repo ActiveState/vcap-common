@@ -136,9 +136,9 @@ module Doozer
   # watch config changes and invoke `callback` if any
   def self.watch_component_config(component_id, config, callback=nil)
 
-    EM.next_tick do
+    c = client(component_id)
 
-      c = client(component_id)
+    EM.next_tick do
 
       # we are assuming that this block of code is meant to keep a
       # persistent connection to doozer so that kato can manage the
