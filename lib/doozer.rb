@@ -25,6 +25,7 @@ module Doozer
 
   # setup a persistent connection to doozer
   def self.client(client_name)
+    client_name = normalize_component_name(client_name)
     if not @@client
       f = Fiber.current
       EM.next_tick do
@@ -40,10 +41,9 @@ module Doozer
               if err
                 raise "Doozer: failed to set /eph/#{component_id.to_s} : " + err.message.to_s
               end
+              f.resume c
             end
           end
-
-          f.resume c
         end
       end
       @@client = Fiber.yield
