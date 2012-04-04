@@ -148,13 +148,11 @@ module Doozer
       # persistent connection to doozer so that kato can manage the
       # ephemeral nodes.
       c.rev do |v|
-        c.rev do |v|
-          path = File.join(component_config_path(component_id), "**")
-          c.watch(v, path) do |e, err|
-            path, key, value = _stash_component_config_value(config, e)
-            if callback
-              callback.call(path, key, value)
-            end
+        path = File.join(component_config_path(component_id), "**")
+        c.watch(v, path) do |e, err|
+          path, key, value = _stash_component_config_value(config, e)
+          if callback
+            callback.call(path, key, value)
           end
         end
       end
