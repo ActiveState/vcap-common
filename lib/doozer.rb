@@ -13,6 +13,24 @@ require 'vcap/logging'
 # other doozers until one accepts or it runs out of options; A NoAddrs
 # exception will be raised if that later happens.
 
+module Fraggle
+  module Connection
+    def post_init
+      req = Fraggle::Request.new
+      req.verb  = Fraggle::Request::Verb::SET
+      req.rev   = 9999999999
+      req.path  = '/eph'
+      req.value = Doozer.client_name
+      cb = Proc.new do |e, err|
+        if err
+          raise "Could not set ephemeral node: " + err
+        end
+      end
+      send_request(req, cb)
+    end
+  end
+end
+
 module Doozer
 
   COMPONENT_CONFIG_PATH = "/proc"
@@ -23,9 +41,14 @@ module Doozer
     VCAP::Logging.logger("doozer")
   end
 
+  def self.client_name
+    return @@client_name
+  end
+
   # setup a persistent connection to doozer
   def self.client(client_name)
-    client_name = normalize_component_name(client_name)
+    
+    @@client_name = normalize_component_name(client_name)
     if not @@client
       f = Fiber.current
       EM.next_tick do
@@ -33,17 +56,7 @@ module Doozer
           if err
             raise err.message
           end
-
-          # register 'component_id' in doozer ephemeral node
-          c.rev do |v|
-            logger.info("Setting doozer ephemeral node /eph = " + client_name.to_s)
-            c.set(v, '/eph', client_name) do |e, err|
-              if err
-                raise "Doozer: failed to set /eph/#{component_id.to_s} : " + err.message.to_s
-              end
-              f.resume c
-            end
-          end
+          f.resume c
         end
       end
       @@client = Fiber.yield
