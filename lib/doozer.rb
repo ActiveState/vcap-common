@@ -149,6 +149,7 @@ module Doozer
       # ephemeral nodes.
       c.rev do |v|
         path = File.join(component_config_path(component_id), "**")
+        logger.info("Watching doozer path " + path.to_s)
         c.watch(v, path) do |e, err|
           path, key, value = _stash_component_config_value(config, e)
           if callback
