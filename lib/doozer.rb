@@ -4,7 +4,9 @@ $:.unshift(File.join(File.dirname(__FILE__), ".."))
 require 'rubygems'
 require 'eventmachine'
 require 'fraggle'
+require 'fraggle/block'
 require 'fiber'
+require 'json'
 require 'vcap/logging'
 
 # In the event of a lost connection, fraggle will attempt
@@ -16,6 +18,10 @@ module Doozer
   COMPONENT_CONFIG_PATH = "/proc"
 
   @@client = nil
+
+  def self.logger
+    VCAP::Logging.logger("doozer")
+  end
 
   # setup a persistent connection to doozer
   def self.client(client_name)
@@ -29,6 +35,7 @@ module Doozer
 
           # register 'component_id' in doozer ephemeral node
           c.rev do |v|
+            logger.info("Setting doozer ephemeral node /eph = " + client_name.to_s)
             c.set(v, '/eph', client_name) do |e, err|
               if err
                 raise "Doozer: failed to set /eph/#{component_id.to_s} : " + err.message.to_s
@@ -54,7 +61,15 @@ module Doozer
   end
 
   def self.get_component_config(component_id)
+    path = File.join(component_config_path(component_id), "**")
+    if EM.reactor_running?
+      return self._get_component_config_async(component_id, path)
+    else
+      return self._get_component_config_blocking(component_id, path)
+    end
+  end
 
+  def self._get_component_config_async(component_id, path)
     c = client(component_id)
 
     f = Fiber.current
@@ -64,8 +79,7 @@ module Doozer
       # for your cluster thus involves managing the $DOOZER_URI
       # environment variable.
       c.rev do |v|
-        pat = File.join(component_config_path(component_id), "**")
-        req = c.walk(v, pat) do |ents, err|
+        req = c.walk(v, path) do |ents, err|
           config = nil
           if err
             raise "Fraggle error (" + err.code.to_s + ") " + err.detail.to_s
@@ -85,6 +99,19 @@ module Doozer
     return config
   end
 
+  def self._get_component_config_blocking(component_id, path)
+    config = nil
+    client = Fraggle::Block.connect
+    walk = client.walk(path)
+    walk.each do |e|
+      if not config
+        config = {}
+      end
+      _stash_component_config_value(config, e)
+    end
+    return config
+  end
+
   def self._stash_component_config_value(config, e)
     path_parts = e.path.split("/")
     path_parts.shift # remove empty part before first "/"
@@ -92,15 +119,14 @@ module Doozer
     path_parts.shift # remove component_id
     path_parts.shift # remove "config"
     # replace dashes with underscores in keys and make symbols
-    path_parts = path_parts.map{|key| key.gsub(/\-/, '_').to_sym}
+    path_parts = path_parts.map{|key| key.gsub(/\-/, '_')}
     # we won't create a hash for last key
     key = path_parts.pop
     path_parts.each do |part|
-      part_sym = part.to_sym
-      if not config.has_key? part_sym
-        config[part_sym] = {}
+      if not config.has_key? part
+        config[part] = {}
       end
-      config = config[part_sym]
+      config = config[part]
     end
     new_value = JSON.load(e.value)
     config[key] = new_value
