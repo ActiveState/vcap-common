@@ -137,6 +137,7 @@ module Doozer
     path_parts.shift # remove "config"
     # replace dashes with underscores in keys and make symbols
     path_parts = path_parts.map{|key| key.gsub(/\-/, '_')}
+    config_path = "/" + path_parts.join("/")
     # we won't create a hash for last key
     key = path_parts.pop
     path_parts.each do |part|
@@ -147,7 +148,7 @@ module Doozer
     end
     new_value = JSON.load(e.value)
     config[key] = new_value
-    return path_parts, key, new_value
+    return config_path, new_value
   end
 
   # watch config changes and invoke `callback` if any
@@ -164,9 +165,9 @@ module Doozer
         path = File.join(component_config_path(component_id), "**")
         logger.info("Watching doozer path " + path.to_s)
         c.watch(v, path) do |e, err|
-          path, key, value = _stash_component_config_value(config, e)
+          config_path, value = _stash_component_config_value(config, e)
           if callback
-            callback.call(path, key, value)
+            callback.call(config_path, value)
           end
         end
       end
@@ -214,6 +215,14 @@ module Doozer
       raise "Failed to set doozer value " + doozer_path.to_s + " = " + doozer_value.to_s + " " + err.message
     end
   end
+
+  def self.fake_config_file_load(file_path)
+    # Take the full yml file path and extra the component_id
+    # for use with doozer config
+    component_id = file_path.sub(/^.*\/([^\/\.]+)\.yml$/, '\1')
+    get_component_config(component_id)
+  end
+
 
 end
 
