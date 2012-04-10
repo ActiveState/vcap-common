@@ -175,7 +175,7 @@ module Doozer
   end
 
   def self.get_component_config_value(component_id, path)
-    doozer_path = File.join(component_config_path(component_id), path.map{|p| p.to_s.gsub(/\_/, '-')})
+    doozer_path = component_config_path(component_id) + path.gsub(/\_/, '-')
 
     c = client(component_id)
 
@@ -195,8 +195,8 @@ module Doozer
     return JSON.load(e.value)
   end
 
-  def self.set_component_config_value(component_id, path, key, value)
-    doozer_path = File.join(component_config_path(component_id), (path + [key]).map{|p| p.to_s.gsub(/\_/, '-')})
+  def self.set_component_config_value(component_id, path, value)
+    doozer_path = component_config_path(component_id) + path.gsub(/\_/, '-')
     doozer_value = JSON.dump(value)
 
     c = client(component_id)
