@@ -16,6 +16,7 @@ require 'vcap/logging'
 module Fraggle
   module Connection
     def post_init
+      VCAP::Logging.logger("doozer").info("Connected to doozer #{addr.to_s}")
       req = Fraggle::Request.new
       req.verb  = Fraggle::Request::Verb::SET
       req.rev   = 9999999999
