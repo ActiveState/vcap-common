@@ -22,7 +22,7 @@ module VCAP
       end
 
       def from_doozer(component_id, symbolize_keys=true)
-        config = Doozer.get_component_config(component_id)
+        config, config_rev = Doozer.get_component_config(component_id)
         @schema.validate(config)
         config = VCAP.symbolize_keys(config) if symbolize_keys
         config

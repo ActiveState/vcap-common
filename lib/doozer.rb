@@ -24,7 +24,7 @@ module Fraggle
       req.value = Doozer.client_name
       cb = Proc.new do |e, err|
         if err
-          raise "Could not set ephemeral node: " + err
+          raise "Could not set ephemeral node: " + err.to_s
         end
       end
       send_request(req, cb)
@@ -74,20 +74,20 @@ module Doozer
     File.join(COMPONENT_CONFIG_PATH, component_key, "config")
   end
 
-  def self.get_component_config(component_id)
+  def self.get_component_config(component_id, symbolize_keys=false)
     path = File.join(component_config_path(component_id), "**")
     if EM.reactor_running?
-      config = self._get_component_config_async(component_id, path)
+      config, config_rev = self._get_component_config_async(component_id, path, symbolize_keys=symbolize_keys)
     else
-      config = self._get_component_config_blocking(component_id, path)
+      config, config_rev = self._get_component_config_blocking(component_id, path, symbolize_keys=symbolize_keys)
     end
     if config.nil?
       raise "Unable to load config for #{component_id} from doozer"
     end
-    config
+    return config, config_rev
   end
 
-  def self._get_component_config_async(component_id, path)
+  def self._get_component_config_async(component_id, path, symbolize_keys=false)
     c = client(component_id)
 
     f = Fiber.current
@@ -106,31 +106,35 @@ module Doozer
               if not config
                 config = {}
               end
-              _stash_component_config_value(config, e)
+              _stash_component_config_value(config, e, symbolize_keys=symbolize_keys)
             end
           end
-          f.resume config
+          f.resume config, v
         end
       end
     end
-    config = Fiber.yield
-    return config
+    config, v = Fiber.yield
+    return config, v
   end
 
-  def self._get_component_config_blocking(component_id, path)
+  def self._get_component_config_blocking(component_id, path, symbolize_keys=false)
     config = nil
     client = Fraggle::Block.connect
     walk = client.walk(path)
+    config_rev = 0
     walk.each do |e|
       if not config
         config = {}
       end
-      _stash_component_config_value(config, e)
+      _stash_component_config_value(config, e, symbolize_keys=symbolize_keys)
+      if e.rev > config_rev
+        config_rev = e.rev
+      end
     end
-    return config
+    return config, config_rev
   end
 
-  def self._stash_component_config_value(config, e)
+  def self._stash_component_config_value(config, e, symbolize_keys=false)
     path_parts = e.path.split("/")
     path_parts.shift # remove empty part before first "/"
     path_parts.shift # remove "proc"
@@ -142,18 +146,24 @@ module Doozer
     # we won't create a hash for last key
     key = path_parts.pop
     path_parts.each do |part|
+      if symbolize_keys
+        part = part.to_sym
+      end
       if not config.has_key? part
         config[part] = {}
       end
       config = config[part]
     end
     new_value = JSON.load(e.value)
+    if symbolize_keys
+      key = key.to_sym
+    end
     config[key] = new_value
     return config_path, new_value
   end
 
   # watch config changes and invoke `callback` if any
-  def self.watch_component_config(component_id, config, callback=nil)
+  def self.watch_component_config(component_id, config, callback=nil, symbolize_keys=false, rev=nil)
 
     c = client(component_id)
 
@@ -163,10 +173,16 @@ module Doozer
       # persistent connection to doozer so that kato can manage the
       # ephemeral nodes.
       c.rev do |v|
+        if not rev
+          rev = v
+        end
         path = File.join(component_config_path(component_id), "**")
-        logger.info("Watching doozer path " + path.to_s)
-        c.watch(v, path) do |e, err|
-          config_path, value = _stash_component_config_value(config, e)
+        logger.info("Watching doozer path #{path} from rev=#{rev.to_s}")
+        c.watch(rev, path) do |e, err|
+          if err
+            raise "Doozer watch failed for " + path.to_s + " " + err.message
+          end
+          config_path, value = _stash_component_config_value(config, e, symbolize_keys=symbolize_keys)
           if callback
             callback.call(config_path, value)
           end
