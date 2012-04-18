@@ -84,7 +84,7 @@ module SA
   end
 
   def SA.install_forwarding (port, lxcip, lxcport)
-    system("#{SYSADM} runlxc install_forwarding #{port} #{lxcip} #{lxcport}")
+    system("#{SYSADM} runlxc install_forwarding #{port} #{lxcip} #{lxcport} &")
   end
 
   def SA.remove_forwarding (port, lxcip, lxcport)
