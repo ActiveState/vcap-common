@@ -3,6 +3,7 @@ SYSADM = "/home/stackato/stackato/tools/sysadm"
 
 require "yaml"
 require "json"
+require "tempfile"
 
 module SA
   class Error < Exception
@@ -83,7 +84,7 @@ module SA
   end
 
   def SA.install_forwarding (port, lxcip, lxcport)
-    system("#{SYSADM} runlxc install_forwarding #{port} #{lxcip} #{lxcport}")
+    system("#{SYSADM} runlxc install_forwarding #{port} #{lxcip} #{lxcport} &")
   end
 
   def SA.remove_forwarding (port, lxcip, lxcport)
@@ -126,6 +127,17 @@ module SA
 
   def SA.grant_sudo(id)
     system("#{SYSADM} runlxc grant_sudo #{id}")
+  end
+
+  def SA.setup_repos(id, repos)
+    datafile = Tempfile.new('stackato')
+    path = datafile.path
+    datafile.close
+
+    json = repos.to_json
+    File.open(path, 'w') { |f| f.write(json) }
+
+    system("#{SYSADM} runlxc setup_repos #{id} #{path}")
   end
 end
 
