@@ -124,16 +124,13 @@ module Doozer
   def self.walk_blocking(component_id, path, symbolize_keys=false)
     config = nil
     client = Fraggle::Block.connect
-    walk = client.walk(path)
-    config_rev = 0
+    config_rev = client.rev.rev
+    walk = client.walk(path)#, rev=config_rev)
     walk.each do |e|
       if not config
         config = {}
       end
       _stash_component_config_value(config, e, root_path=path, symbolize_keys=symbolize_keys)
-      if e.rev > config_rev
-        config_rev = e.rev
-      end
     end
     return config, config_rev
   end
