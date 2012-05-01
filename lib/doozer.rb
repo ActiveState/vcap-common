@@ -168,7 +168,7 @@ module Doozer
     if e.path.start_with? "/ctl/"
       new_value = e.value
     else
-      new_value = JSON.load(e.value)
+      new_value = Yajl::Parser.parse(e.value, :symbolize_keys => symbolize_keys)
     end
     if symbolize_keys
       key = key.to_sym
@@ -213,7 +213,7 @@ module Doozer
     end
   end
 
-  def self.get_component_config_value(component_id, path)
+  def self.get_component_config_value(component_id, path, symbolize_keys=false)
     doozer_path = component_config_path(component_id) + path.gsub(/\_/, '-')
 
     c = client(component_id)
@@ -231,7 +231,7 @@ module Doozer
     if err
       raise "Failed to get doozer value " + doozer_path.to_s + " " + err.message
     end
-    return JSON.load(e.value)
+    return Yajl::Parser.parse(e.value, :symbolize_keys => symbolize_keys)
   end
 
   def self.set_component_config_value(component_id, path, value)
