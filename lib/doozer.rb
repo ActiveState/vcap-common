@@ -7,6 +7,7 @@ require 'fraggle'
 require 'fraggle/block'
 require 'fiber'
 require 'json'
+require 'yajl'
 require 'vcap/logging'
 
 # In the event of a lost connection, fraggle will attempt
@@ -215,6 +216,20 @@ module Doozer
 
   def self.get_component_config_value(component_id, path, symbolize_keys=false)
     doozer_path = component_config_path(component_id) + path.gsub(/\_/, '-')
+    if EM.reactor_running?
+      return _get_component_config_value_async(component_id, doozer_path, symbolize_keys)
+    else
+      return _get_component_config_value_blocking(component_id, doozer_path, symbolize_keys)
+    end
+  end
+
+  def self._get_component_config_value_blocking(component_id, doozer_path, symbolize_keys=false)
+    client = Fraggle::Block.connect
+    e = client.get(doozer_path)
+    e.value
+  end
+
+  def self._get_component_config_value_async(component_id, doozer_path, symbolize_keys=false)
 
     c = client(component_id)
 
