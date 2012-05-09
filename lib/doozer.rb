@@ -136,6 +136,10 @@ module Doozer
     return config, config_rev
   end
 
+  def self._is_del(flags)
+    flags & 8 == 0 ? false : true
+  end
+
   def self._stash_component_config_value(config, e, root_path, symbolize_keys=false)
 
     # expects root_path to have trailing slash or trailing "/**"
@@ -166,15 +170,19 @@ module Doozer
       end
       config = config[part]
     end
-    if e.path.start_with? "/ctl/"
-      new_value = e.value
-    else
-      new_value = Yajl::Parser.parse(e.value, :symbolize_keys => symbolize_keys)
-    end
     if symbolize_keys
       key = key.to_sym
     end
-    config[key] = new_value
+    if _is_del(e.flags)
+      config.delete(key)
+    else
+      if e.path.start_with? "/ctl/"
+        new_value = e.value
+      else
+        new_value = Yajl::Parser.parse(e.value, :symbolize_keys => symbolize_keys)
+      end
+      config[key] = new_value
+    end
     return config_path, new_value
   end
 
@@ -207,8 +215,9 @@ module Doozer
           raise "Doozer watch failed for " + path.to_s + " " + err.message
         end
         config_path, value = _stash_component_config_value(config, e, root_path=path, symbolize_keys=symbolize_keys)
+        is_del = _is_del(e.flags)
         if callback
-          callback.call(config_path, value)
+          callback.call(config_path, value, e.rev, is_del)
         end
       end
     end
@@ -249,25 +258,94 @@ module Doozer
     return Yajl::Parser.parse(e.value, :symbolize_keys => symbolize_keys)
   end
 
-  def self.set_component_config_value(component_id, path, value)
+  def self.set_component_config_value(component_id, path, value, rev=9999999999)
     doozer_path = component_config_path(component_id) + path.gsub(/\_/, '-')
+    set_config_value(component_id, doozer_path, value, rev)
+  end
+
+  def self.set_config_value(component_id, path, value, rev=9999999999)
+    if EM.reactor_running?
+      self._set_config_value_async(component_id, path, value, rev)
+    else
+      self._set_config_value_blocking(component_id, path, value, rev)
+    end
+  end
+
+  def self._set_config_value_async(component_id, doozer_path, value, rev)
+    unless rev
+      raise "rev expected"
+    end
     doozer_value = JSON.dump(value)
 
     c = client(component_id)
 
     f = Fiber.current
     EM.next_tick do
-      c.rev do |v|
-        c.set(v, doozer_path, doozer_value) do |e, err|
-          f.resume(e, err)
-        end
+      c.set(rev, doozer_path, doozer_value) do |e, err|
+        f.resume(e, err)
       end
     end
     e, err = Fiber.yield
 
     if err
-      raise "Failed to set doozer value " + doozer_path.to_s + " = " + doozer_value.to_s + " " + err.message
+      raise "Failed to set doozer value #{doozer_path.to_s} (r#{rev.to_s}) = #{doozer_value.to_s} : " + err.message
     end
+    
+    e.rev
+  end
+
+  def self._set_config_value_blocking(component_id, doozer_path, value, rev)
+    unless rev
+      raise "rev expected"
+    end
+    doozer_value = JSON.dump(value)
+    client = Fraggle::Block.connect
+    e = client.set(doozer_path, doozer_value, rev)
+    e.rev
+  end
+
+  def self.del_component_config_value(component_id, path, value, rev=9999999999)
+    doozer_path = component_config_path(component_id) + path.gsub(/\_/, '-')
+    del_config_value(component_id, doozer_path, value, rev)
+  end
+
+  def self.del_config_value(component_id, path, rev=9999999999)
+    if EM.reactor_running?
+      self._del_config_value_async(component_id, path, rev)
+    else
+      self._del_config_value_blocking(component_id, path, rev)
+    end
+  end
+
+  def self._del_config_value_async(component_id, doozer_path, rev)
+    unless rev
+      raise "rev expected"
+    end
+
+    c = client(component_id)
+
+    f = Fiber.current
+    EM.next_tick do
+      c.del(rev, doozer_path) do |e, err|
+        f.resume(e, err)
+      end
+    end
+    e, err = Fiber.yield
+
+    if err
+      raise "Failed to del doozer path " + doozer_path.to_s + " " + err.message
+    end
+    
+    e.rev
+  end
+
+  def self._del_config_value_blocking(component_id, doozer_path, rev)
+    unless rev
+      raise "rev expected"
+    end
+    client = Fraggle::Block.connect
+    e = client.del(doozer_path, rev)
+    e.rev
   end
 
   def self.fake_config_file_load(file_path)
