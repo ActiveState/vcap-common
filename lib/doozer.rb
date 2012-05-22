@@ -50,7 +50,7 @@ module Doozer
   # setup a persistent connection to doozer
   def self.client(client_name)
     
-    @@client_name = normalize_component_name(client_name)
+    @@client_name = client_name
     if not @@client
       f = Fiber.current
       EM.next_tick do
@@ -66,13 +66,8 @@ module Doozer
     return @@client
   end
 
-  def self.normalize_component_name(c)
-    c.gsub(/\_/, '-')
-  end
-
   def self.component_config_path(component_id)
-    component_key = normalize_component_name(component_id)
-    File.join(COMPONENT_CONFIG_PATH, component_key, "config")
+    File.join(COMPONENT_CONFIG_PATH, component_id, "config")
   end
 
   def self.get_component_config(component_id, symbolize_keys=false)
@@ -156,8 +151,6 @@ module Doozer
     (1..stash_depth).each do |i|
       path_parts.shift # remove leading path eg. /proc/<component_id>/config
     end
-    # replace dashes with underscores in keys and make symbols
-    path_parts = path_parts.map{|key| key.gsub(/\-/, '_')}
     config_path = "/" + path_parts.join("/")
     # we won't create a hash for last key
     key = path_parts.pop
@@ -224,7 +217,7 @@ module Doozer
   end
 
   def self.get_component_config_value(component_id, path, symbolize_keys=false)
-    doozer_path = component_config_path(component_id) + path.gsub(/\_/, '-')
+    doozer_path = component_config_path(component_id) + path
     if EM.reactor_running?
       return _get_component_config_value_async(component_id, doozer_path, symbolize_keys)
     else
@@ -259,7 +252,7 @@ module Doozer
   end
 
   def self.set_component_config_value(component_id, path, value, rev=9999999999)
-    doozer_path = component_config_path(component_id) + path.gsub(/\_/, '-')
+    doozer_path = component_config_path(component_id) + path
     set_config_value(component_id, doozer_path, value, rev)
   end
 
@@ -305,7 +298,7 @@ module Doozer
   end
 
   def self.del_component_config_value(component_id, path, value, rev=9999999999)
-    doozer_path = component_config_path(component_id) + path.gsub(/\_/, '-')
+    doozer_path = component_config_path(component_id) + path
     del_config_value(component_id, doozer_path, value, rev)
   end
 
