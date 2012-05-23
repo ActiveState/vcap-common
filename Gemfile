@@ -9,7 +9,5 @@ end
 
 # Doozer
 gem 'fraggle'
-
-# XXX: Change this to ActiveState!!!
-gem 'fraggle-block', :git => 'git://github.com/philwhln/fraggle-block.git'
+gem 'fraggle-block'
 
