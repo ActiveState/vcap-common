@@ -25,7 +25,7 @@ module VCAP
         config, config_rev = Doozer.get_component_config(component_id)
         @schema.validate(config)
         config = VCAP.symbolize_keys(config) if symbolize_keys
-        config
+        [config, config_rev]
       end
 
       def to_file(config, out_filename)
