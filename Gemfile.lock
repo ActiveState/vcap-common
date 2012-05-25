@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    vcap_common (1.0.9)
+    vcap_common (1.0.12)
       eventmachine (~> 0.12.11.cloudfoundry.3)
       fraggle (~> 4.0.1)
       fraggle-block (~> 0.2.0)

@@ -64,8 +64,10 @@ module SA
 
   def SA.run_chroot(id, cmd)
     cmd.gsub!('"', '\"')
-  
-    `#{SYSADM} runlxc run_chroot #{id} #{cmd}`.strip
+
+    out = `#{SYSADM} runlxc run_chroot #{id} #{cmd}`.strip
+
+    return $?, out
   end
 
   def SA.runlxc (instance_id, dir, cmd, env, &block)
