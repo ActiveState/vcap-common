@@ -16,8 +16,24 @@ module VCAP
 Stackato is unable to start!
 
 Unable to connect to NATS. You may have specified an invalid mbus setting 
-in your configuration, located in /home/stackato/stackato/etc/vcap.
+in your configuration (check "kato config <component name> mbus").
 ERROR
+      end
+    end
+
+    def self.symbolize_keys(data)
+      case data
+      when Array
+        data.map { |arg| symbolize_keys(arg) }
+      when Hash
+        Hash[
+          data.map { |key, value|  
+            k = key.is_a?(String) ? key.to_sym : key
+            v = symbolize_keys(value)
+            [k,v]
+          }]
+      else
+        data
       end
     end
   end
