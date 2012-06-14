@@ -3,7 +3,7 @@ require 'yaml'
 
 require 'vcap/common'
 require 'vcap/json_schema'
-require 'kato/doozer'
+require 'doozer'
 
 module VCAP
   class Config
@@ -22,7 +22,7 @@ module VCAP
       end
 
       def from_doozer(component_id, symbolize_keys=true)
-        config, config_rev = Kato::Doozer.get_component_config(component_id)
+        config, config_rev = Doozer.get_component_config(component_id)
         @schema.validate(config)
         config = VCAP.symbolize_keys(config) if symbolize_keys
         [config, config_rev]

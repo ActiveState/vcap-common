@@ -7,6 +7,7 @@ group :spec do
   gem 'em-http-request' #, '~> 1.0.0.beta3'
 end
 
-# Kato (Stackato administration functionality)
-gem 'kato', :path => '../../kato'
+# Doozer
+gem 'fraggle'
+gem 'fraggle-block'
 
