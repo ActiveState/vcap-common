@@ -38,6 +38,7 @@ module Doozer
   COMPONENT_CONFIG_PATH = "/proc"
 
   @@client = nil
+  @@client_name = "unknown"
 
   def self.logger
     VCAP::Logging.logger("doozer")
