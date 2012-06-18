@@ -67,7 +67,7 @@ module Doozer
   end
 
   def self.component_config_path(component_id)
-    File.join(COMPONENT_CONFIG_PATH, component_id, "config")
+    File.join(COMPONENT_CONFIG_PATH, component_id.to_s, "config")
   end
 
   def self.get_component_config(component_id, symbolize_keys=false)
