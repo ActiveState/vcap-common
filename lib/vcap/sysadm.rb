@@ -127,6 +127,10 @@ module SA
     system("#{SYSADM} runlxc mount_sshfs #{path}")
   end
 
+  def SA.pull_private_key(id)
+    `#{SYSADM} runlxc pull_private_key #{id}`.strip
+  end
+
   def SA.grant_sudo(id)
     system("#{SYSADM} runlxc grant_sudo #{id}")
   end
