@@ -145,5 +145,17 @@ module SA
 
     system("#{SYSADM} runlxc setup_repos #{id} #{path}")
   end
+
+  def SA.get_pid_mem_map
+    map = {}
+
+    lines = `#{SYSADM} runlxc get_pid_mem_map`.strip.split "\n"
+    lines.each do |line|
+      pid, mem = line.split " "
+      map[pid.to_i] = mem.to_i
+    end
+
+    map
+  end
 end
 
