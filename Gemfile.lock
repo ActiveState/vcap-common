@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     vcap_common (1.0.12)
-      eventmachine (~> 0.12.11.cloudfoundry.3)
+      eventmachine (~> 1.0.0.rc4)
       fraggle (~> 4.0.1)
       fraggle-block (~> 0.2.0)
       nats (~> 0.4.22.beta.8)
@@ -22,7 +22,7 @@ GEM
       escape_utils
       eventmachine (>= 0.12.9)
     escape_utils (0.2.4)
-    eventmachine (0.12.11.cloudfoundry.3)
+    eventmachine (1.0.0.rc4)
     fraggle (4.0.1)
       beefcake (~> 0.3)
       eventmachine
