@@ -14,8 +14,7 @@ spec = Gem::Specification.new do |s|
   s.add_dependency('yajl-ruby', '~> 0.8.3')
   s.add_dependency('nats', '~> 0.4.22.beta.8')
   s.add_dependency('posix-spawn', '~> 0.3.6')
-  s.add_dependency('fraggle', '~> 4.0.1')
-  s.add_dependency('fraggle-block', '~> 0.2.0')
+  s.add_dependency('stackato-kato')
   s.add_development_dependency('rake', '~> 0.9.2')
 
   s.require_paths = ['lib']
