@@ -32,8 +32,8 @@ module VCAP::Services::Api
       end
 
       def fibered(url, token, verb, timeout, msg=VCAP::Services::Api::EMPTY_REQUEST)
-        req = new(url, token, verb, timeout, msg)
         f = Fiber.current
+        req = new(url, token, verb, timeout, msg)
         req.callback { f.resume(req) }
         req.errback  { f.resume(req) }
         Fiber.yield
