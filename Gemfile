@@ -1,4 +1,4 @@
-source "http://rubygems.org"
+source (ENV['RUBYGEMS_MIRROR'] or :rubygems)
 
 gemspec
 
