@@ -10,9 +10,9 @@ spec = Gem::Specification.new do |s|
   s.email = ["derek.collison@gmail.com"]
 
   s.add_dependency('eventmachine', '~> 1.0.0')
-  s.add_dependency('thin', '~> 1.4.1')
+  s.add_dependency('thin', '>= 1.4.0', '< 1.6')
   s.add_dependency('yajl-ruby', '~> 1.1.0')
-  s.add_dependency('nats', '~> 0.4.22.beta.8')
+  s.add_dependency('nats', '~> 0.4.26')
   s.add_dependency('posix-spawn', '~> 0.3.6')
   s.add_dependency('stackato-kato')
   s.add_development_dependency('rake', '~> 0.9.2')

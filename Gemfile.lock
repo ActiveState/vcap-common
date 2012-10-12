@@ -1,12 +1,22 @@
+GIT
+  remote: git://github.com/ttilley/nats.git
+  revision: 85265f61ed740995ef4d043a00441faab820f602
+  specs:
+    nats (0.4.28)
+      daemons (>= 1.1.9)
+      eventmachine (>= 0.12.10)
+      json_pure (>= 1.7.3)
+      thin (>= 1.4.1)
+
 PATH
   remote: .
   specs:
     vcap_common (1.0.12)
       eventmachine (~> 1.0.0)
-      nats (~> 0.4.22.beta.8)
+      nats (~> 0.4.26)
       posix-spawn (~> 0.3.6)
       stackato-kato
-      thin (~> 1.4.1)
+      thin (>= 1.4.0, < 1.6)
       yajl-ruby (~> 1.1.0)
 
 GEM
@@ -26,6 +36,8 @@ GEM
     em-socksify (0.2.1)
       eventmachine (>= 1.0.0.beta.4)
     eventmachine (1.0.0)
+    eventmachine-tail (0.6.3)
+      eventmachine
     fraggle (4.0.1)
       beefcake (~> 0.3)
       eventmachine
@@ -36,11 +48,6 @@ GEM
     macaddr (1.6.1)
       systemu (~> 2.5.0)
     mustache (0.99.4)
-    nats (0.4.26)
-      daemons (>= 1.1.5)
-      eventmachine (>= 0.12.10)
-      json_pure (>= 1.7.3)
-      thin (>= 1.4.1)
     pg (0.14.1)
     posix-spawn (0.3.6)
     rack (1.4.1)
@@ -52,10 +59,11 @@ GEM
     rspec-core (2.11.1)
     rspec-expectations (2.11.3)
       diff-lcs (~> 1.1.3)
-    rspec-mocks (2.11.2)
+    rspec-mocks (2.11.3)
     stackato-kato (1.0.2)
       em-http-request (~> 1.0.0)
       eventmachine (~> 1.0.0)
+      eventmachine-tail (~> 0.6.3)
       fraggle (= 4.0.1)
       fraggle-block (= 0.2.0)
       mustache
@@ -63,22 +71,25 @@ GEM
       subcommand (>= 1.0.6)
       term-ansicolor
       uuid (~> 2.3.5)
+      vic (~> 1.0.0)
       yajl-ruby (~> 1.1.0)
     subcommand (1.0.6)
     systemu (2.5.2)
     term-ansicolor (1.0.7)
-    thin (1.4.1)
+    thin (1.5.0)
       daemons (>= 1.0.9)
       eventmachine (>= 0.12.6)
       rack (>= 1.0.0)
     uuid (2.3.5)
       macaddr (~> 1.0)
+    vic (1.0.0)
     yajl-ruby (1.1.0)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
+  nats (~> 0.4.28)!
   rake (~> 0.9.2)
   rspec
   vcap_common!
