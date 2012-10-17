@@ -34,6 +34,7 @@ GEM
     fraggle-block (0.2.0)
       beefcake (~> 0.3)
     http_parser.rb (0.5.3)
+    ipaddress (0.8.0)
     json_pure (1.7.5)
     macaddr (1.6.1)
       systemu (~> 2.5.0)
@@ -61,6 +62,7 @@ GEM
       eventmachine-tail (~> 0.6.3)
       fraggle (= 4.0.1)
       fraggle-block (= 0.2.0)
+      ipaddress (~> 0.8.0)
       mustache
       pg
       subcommand (>= 1.0.6)
