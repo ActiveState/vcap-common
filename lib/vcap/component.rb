@@ -79,6 +79,7 @@ module VCAP
       end
 
       def start_http_server(host, port, auth, logger)
+        puts "Starting status server at #{host}:#{port}"
         http_server = Thin::Server.new(host, port, :signals => false) do
           Thin::Logging.silent = true
           use Rack::Auth::Basic do |username, password|
