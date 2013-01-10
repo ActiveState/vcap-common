@@ -15,7 +15,7 @@
 NAME=stackato-vcap-vcap-common
 
 INSTALLROOT=/home/stackato/stackato/vcap
-DIRNAME=$(INSTALLROOT)/common/vcap-common
+DIRNAME=$(INSTALLROOT)/common
 
 INSTDIR=$(DESTDIR)$(prefix)$(DIRNAME)
 
