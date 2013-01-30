@@ -9,7 +9,19 @@ module VCAP
       blk.call(arr[0])
     end
 
-    def self.create_services_env(services)
+    def self.cache_service_name(appname)
+      "#{appname}-cache"
+    end
+
+    def self.filesystem_dir(name)
+      "/app/fs/#{name}"
+    end
+
+    def self.cache_service_dir(appname)
+      filesystem_dir(cache_service_name(appname))
+    end
+
+    def self.create_services_env(services, appname)
       e = {}
       return e unless services
 
@@ -22,20 +34,22 @@ module VCAP
 
       # services is already symbolized in staging, but not in dea
       VCAP::Util.symbolize_keys(services).each do |s|
-        stackato_services[s[:name]] = stackato_hash = {}
-
+        stackato_hash = {}
         vcap_hash = {}
         unversioned_label = s[:label].sub(/-\d+(\.\d+)*$/, "")
-        vcap_services[unversioned_label] ||= []
-        vcap_services[unversioned_label] << vcap_hash
 
         whitelist.each {|k| vcap_hash[k] = s[k] if s[k]}
         if unversioned_label == 'filesystem'
-          stackato_hash[:dir] = vcap_hash[:dir] = "/app/fs/#{s[:name]}"
+          stackato_hash[:dir] = vcap_hash[:dir] = filesystem_dir(s[:name])
+          next if stackato_hash[:dir] == cache_service_dir(appname)
           vcap_hash.delete(:credentials)
         elsif s[:credentials].is_a? Hash
           s[:credentials].each {|k,v| stackato_hash[k] = v}
         end
+
+        stackato_services[s[:name]] = stackato_hash
+        vcap_services[unversioned_label] ||= []
+        vcap_services[unversioned_label] << vcap_hash
       end
 
       e['VCAP_SERVICES'] = vcap_services.to_json
