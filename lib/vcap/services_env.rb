@@ -103,6 +103,15 @@ module VCAP
         e["STACKATO_FILESYSTEM_#{s[:name].upcase.gsub('-', '_')}"] = s[:dir]
       end
 
+      only_item(vcap_services['harbor']) do |s|
+        e["STACKATO_HABOR"] = s[:credentials][:int_port]
+      end
+
+      # For harbor services we will also create a specific variable for each one
+      (vcap_services['harbor'] || []).each do |s|
+        e["STACKATO_HARBOR_#{s[:name].upcase.gsub('-', '_')}"] = s[:credentials][:int_port]
+      end
+
       return e
     end
 
