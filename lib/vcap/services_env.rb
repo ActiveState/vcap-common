@@ -54,6 +54,7 @@ module VCAP
 
       e['VCAP_SERVICES'] = vcap_services.to_json
       e['STACKATO_SERVICES'] = stackato_services.to_json
+      e['STACKATO_APP_NAME_UPCASE'] = appname.upcase.gsub('-', '_')
 
       # Add individual environment variables for each service type as long
       # as only a single service of that type has been bound.
