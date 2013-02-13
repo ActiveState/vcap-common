@@ -105,7 +105,7 @@ module VCAP
       end
 
       only_item(vcap_services['harbor']) do |s|
-        e["STACKATO_HABOR"] = s[:credentials][:int_port]
+        e["STACKATO_HARBOR"] = s[:credentials][:int_port]
       end
 
       # For harbor services we will also create a specific variable for each one
