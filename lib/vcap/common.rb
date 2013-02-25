@@ -1,6 +1,7 @@
 # Copyright (c) 2009-2011 VMware, Inc.
 require 'fileutils'
 require 'socket'
+require 'securerandom'
 
 # VMware's Cloud Application Platform
 
@@ -55,7 +56,7 @@ module VCAP
   end
 
   def self.secure_uuid
-    result = File.open('/dev/urandom') { |x| x.read(16).unpack('H*')[0] }
+    SecureRandom.hex
   end
 
   def self.grab_ephemeral_port
