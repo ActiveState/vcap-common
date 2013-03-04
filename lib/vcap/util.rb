@@ -16,7 +16,7 @@ module VCAP
 Stackato is unable to start!
 
 Unable to connect to NATS. You may have specified an invalid mbus setting 
-in your configuration (check "kato config <component name> mbus").
+in your configuration (check "kato config get <component name> mbus").
 ERROR
       end
     end
