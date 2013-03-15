@@ -64,14 +64,20 @@ module VCAP
         e["MYSQL_URL"] = "mysql://#{c[:user]}:#{c[:password]}@#{c[:host]}:#{c[:port]}/#{c[:name]}"
       end
 
+      only_item(vcap_services['oracle']) do |s|
+        c = s[:credentials]
+        e["ORACLE_URL"] = "oracle://#{c[:user]}:#{c[:pass]}@#{c[:host]}:#{c[:port]}/#{c[:name]}"
+        e["JDBC_ORACLE_URL"] = "jdbc:oracle:thin:#{c[:user]}/#{c[:pass]}@//#{c[:host]}:#{c[:port]}/#{c[:name]}"
+      end
+
       only_item(vcap_services['postgresql']) do |s|
         c = s[:credentials]
         e["POSTGRESQL_URL"] = "postgres://#{c[:user]}:#{c[:password]}@#{c[:host]}:#{c[:port]}/#{c[:name]}"
       end
 
       # Store relational database url also in $DATABASE_URL if there is just one database
-      if ((vcap_services['mysql'] || []) + (vcap_services['postgresql'] || [])).size == 1
-        e["DATABASE_URL"] = e["MYSQL_URL"] || e["POSTGRESQL_URL"]
+      if ((vcap_services['mysql'] || []) + (vcap_services['oracle'] || []) + (vcap_services['postgresql'] || [])).size == 1
+        e["DATABASE_URL"] = e["MYSQL_URL"] || e["ORACLE_URL"] || e["POSTGRESQL_URL"]
       end
 
       only_item(vcap_services['mongodb']) do |s|
