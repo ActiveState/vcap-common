@@ -14,12 +14,16 @@
 
 NAME=stackato-vcap-vcap-common
 
-INSTALLROOT=/home/stackato/stackato/vcap
+INSTALLHOME=/home/stackato
+INSTALLBASE=$(INSTALLHOME)/stackato
+INSTALLROOT=$(INSTALLBASE)/vcap
 DIRNAME=$(INSTALLROOT)/common
 
+HOMEDIR=$(DESTDIR)$(prefix)$(INSTALLHOME)
+BASEDIR=$(DESTDIR)$(prefix)$(INSTALLBASE)
 INSTDIR=$(DESTDIR)$(prefix)$(DIRNAME)
 
-RSYNC_EXCLUDE=--exclude=.git --exclude=Makefile --exclude=.stackato-pkg --exclude=debian
+RSYNC_EXCLUDE=--exclude=.git --exclude=Makefile --exclude=.stackato-pkg --exclude=debian --exclude=etc
 
 all:
 	@ true
@@ -27,6 +31,8 @@ all:
 install:
 	mkdir -p $(INSTDIR)
 	rsync -ap . $(INSTDIR) $(RSYNC_EXCLUDE)
+	if [ -d etc ] ; then rsync -ap etc $(BASEDIR) ; fi
+	chown -Rh stackato.stackato $(HOMEDIR)
 
 uninstall:
 	rm -rf $(INSTDIR)
