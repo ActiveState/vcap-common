@@ -21,12 +21,11 @@ module VCAP
       end
 
       def from_doozer(component_id, symbolize_keys=true)
-        $LOAD_PATH << File.join(ENV['HOME'], 'stackato/kato/lib')
-        require 'kato/doozer'
-        config, config_rev = Kato::Doozer.get_component_config(component_id)
+        require 'kato/config'
+        config = Kato::Config.get(component_id)
         @schema.validate(config)
-        config = VCAP.symbolize_keys(config) if symbolize_keys
-        [config, config_rev]
+        config = config.symbolize_keys if symbolize_keys
+        [config, 0]
       end
 
       def to_file(config, out_filename)
