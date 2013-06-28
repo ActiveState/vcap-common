@@ -21,6 +21,10 @@ module VCAP
       filesystem_dir(cache_service_name(appname))
     end
 
+    def self.generate_ampq_url(c)
+      "amqp://#{c[:username]}:#{c[:password]}@#{c[:host]}:#{c[:port]}/#{c[:vhost]}"
+    end
+
     def self.create_services_env(services, appname)
       e = {}
       return e unless services
@@ -93,7 +97,14 @@ module VCAP
 
       only_item(vcap_services['rabbitmq']) do |s|
         c = s[:credentials]
-        e["RABBITMQ_URL"] = "amqp://#{c[:username]}:#{c[:password]}@#{c[:host]}:#{c[:port]}/#{c[:vhost]}"
+        e["RABBITMQ_URL"] = generate_ampq_url(c)
+      end
+
+      if not e["RABBITMQ_URL"]
+        only_item(vcap_services['rabbitmq3']) do |s|
+          c = s[:credentials]
+          e["RABBITMQ_URL"] = generate_ampq_url(c)
+        end
       end
 
       only_item(vcap_services['memcached']) do |s|
