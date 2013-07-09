@@ -112,6 +112,10 @@ module VCAP
         e["MEMCACHE_URL"] = "#{c[:host]}:#{c[:port]}"
       end
 
+      only_item(vcap_services['elasticsearch']) do |s|
+        e["ELASTICSEARCH_URL"] = "#{c[:host]}:#{c[:port]}"
+      end
+
       only_item(vcap_services['filesystem']) do |s|
         e["STACKATO_FILESYSTEM"] = s[:dir]
       end
