@@ -56,7 +56,7 @@ module VCAP
   end
 
   def self.secure_uuid
-    SecureRandom.hex
+    File.open('/dev/urandom') { |x| x.read(16).unpack('H*')[0] }
   end
 
   def self.grab_ephemeral_port
@@ -77,6 +77,13 @@ module VCAP
     minutes = num_seconds / 60;
     num_seconds -= minutes * 60;
     "#{days}d:#{hours}h:#{minutes}m:#{num_seconds}s"
+  end
+
+  def self.uptime_string_to_seconds(string)
+    parts = string.split(":", 4).map { |i| i.to_i}
+    raise ArgumentError.new("Invalid format") unless parts.size == 4
+    days, hours, mins, secs = parts
+    secs + (mins * 60) + (hours * 3600) + (days * 24 * 3600)
   end
 
   def self.num_cores

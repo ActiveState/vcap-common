@@ -1,13 +1,16 @@
-# Copyright (c) 2009-2011 VMware, Inc.
+# Copyright (c) 2009-2011 VMware, Inc
 require 'rubygems'
-
 require 'yajl'
-
-require 'json_schema'
+require 'membrane'
 
 class JsonMessage
-  # Base error class that all other JsonMessage related errors should inherit from
+  # Base error class that all other JsonMessage related errors should
+  # inherit from
   class Error < StandardError
+  end
+
+  # Fields not defined properly.
+  class DefinitionError < Error
   end
 
   # Failed to parse json during +decode+
@@ -16,31 +19,49 @@ class JsonMessage
 
   # One or more field's values didn't match their schema
   class ValidationError < Error
-    def initialize(field_errs)
-      @field_errs = field_errs
+    attr_reader :errors
+
+    def initialize(errors)
+      @errors = errors
     end
 
     def to_s
-      err_strs = @field_errs.map{|f, e| "Field: #{f}, Error: #{e}"}
+      err_strs = @errors.map { |f, e| "Field: #{f}, Error: #{e}" }
       err_strs.join(', ')
     end
   end
 
   class Field
-    attr_reader :name, :schema, :required
+    attr_reader :name, :schema, :required, :default
 
-    def initialize(name, schema, required=true)
+    def initialize(name, options = {}, &blk)
+      blk ||= lambda { |*_| options[:schema] || any }
+
       @name = name
-      @schema = schema.is_a?(JsonSchema) ? schema : JsonSchema.new(schema)
-      @required = required
+      @schema = Membrane::SchemaParser.parse(&blk)
+      @required = options[:required] || false
+      @default = options[:default]
+
+      if @required && @default
+        raise DefinitionError, \
+          "Cannot define a default value for required field #{name}"
+      end
+
+      validate(@default) if @default
+    end
+
+    def validate(value)
+      begin
+        @schema.validate(value)
+      rescue Membrane::SchemaValidationError => e
+        raise ValidationError.new( { name => e.message } )
+      end
     end
   end
 
   class << self
-    attr_reader :fields
-
-    def schema(&blk)
-      instance_eval &blk
+    def fields
+      @fields ||= {}
     end
 
     def decode(json)
@@ -58,19 +79,23 @@ class JsonMessage
 
       errs = {}
 
-      # Treat null values as if the keys aren't present. This isn't as strict as one would like,
-      # but conforms to typical use cases.
+      # Treat null values as if the keys aren't present. This isn't as strict
+      # as one would like, but conforms to typical use cases.
       dec_json.delete_if {|k, v| v == nil}
 
       # Collect errors by field
-      @fields.each do |name, field|
+      fields.each do |name, field|
         err = nil
-        name_s = name.to_s
-        if dec_json.has_key?(name_s)
-          err = field.schema.validate(dec_json[name_s])
+        if dec_json.has_key?(name.to_s)
+          begin
+            field.validate(dec_json[name.to_s])
+          rescue ValidationError => e
+            err = e.errors[name]
+          end
         elsif field.required
           err = "Missing field #{name}"
         end
+
         errs[name] = err if err
       end
 
@@ -79,27 +104,27 @@ class JsonMessage
       new(dec_json)
     end
 
-    def required(field_name, schema=JsonSchema::WILDCARD)
-      define_field(field_name, schema, true)
+    def required(name, schema = nil, &blk)
+      define_field(name, :schema => schema, :required => true, &blk)
     end
 
-    def optional(field_name, schema=JsonSchema::WILDCARD)
-      define_field(field_name, schema, false)
+    def optional(name, schema = nil, default = nil, &blk)
+      define_field(name, :schema => schema, :default => default, &blk)
     end
 
     protected
 
-    def define_field(name, schema, required)
+    def define_field(name, options = {}, &blk)
       name = name.to_sym
 
-      @fields ||= {}
-      @fields[name] = Field.new(name, schema, required)
+      fields[name] = Field.new(name, options, &blk)
 
-      define_method name.to_sym do
+      define_method(name) do
+        set_default(name)
         @msg[name]
       end
 
-      define_method "#{name}=".to_sym do |value|
+      define_method("#{name}=") do |value|
         set_field(name, value)
       end
     end
@@ -107,33 +132,59 @@ class JsonMessage
 
   def initialize(fields={})
     @msg = {}
-    fields.each {|k, v| set_field(k, v)}
+    fields.each { |name, value| set_field(name, value) }
+    set_defaults
   end
 
   def encode
-    if self.class.fields
-      missing_fields = {}
-      self.class.fields.each do |name, field|
-        missing_fields[name] = "Missing field #{name}" unless (!field.required || @msg.has_key?(name))
+    set_defaults
+
+    missing_fields = {}
+
+    self.class.fields.each do |name, field|
+      if field.required && !@msg.has_key?(name)
+        missing_fields[name] = "Missing field #{name}"
       end
-      raise ValidationError.new(missing_fields) unless missing_fields.empty?
     end
+
+    raise ValidationError.new(missing_fields) unless missing_fields.empty?
 
     Yajl::Encoder.encode(@msg)
   end
 
-  def extract
-    @msg.dup.freeze
+  def extract(opts = {})
+    hash = @msg.dup
+    if opts[:stringify_keys]
+      hash = hash.inject({}) { |memo,(k,v)| memo[k.to_s] = v; memo }.freeze
+    end
+
+    hash.freeze
   end
 
   protected
 
-  def set_field(field, value)
-    field = field.to_sym
-    raise ValidationError.new({field => "Unknown field #{field}"}) unless self.class.fields.has_key?(field)
+  def set_field(name, value)
+    name = name.to_sym
+    field = self.class.fields[name]
 
-    errs = self.class.fields[field].schema.validate(value)
-    raise ValidationError.new({field => errs}) if errs
-    @msg[field] = value
+    return unless field
+
+    field.validate(value)
+    @msg[name] = value
+  end
+
+  def set_defaults
+    self.class.fields.each do |name, _|
+      set_default(name)
+    end
+  end
+
+  def set_default(name)
+    unless @msg.has_key?(name)
+      field = self.class.fields[name]
+      if field
+        @msg[name] = field.default unless field.default.nil?
+      end
+    end
   end
 end

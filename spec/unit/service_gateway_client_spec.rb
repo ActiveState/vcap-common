@@ -1,83 +1,271 @@
 # Copyright (c) 2009-2012 VMware, Inc.
 require 'spec_helper'
+require 'webmock/rspec'
 
 module VCAP::Services::Api
-  class ServiceGatewayClient
-    public :perform_request
+  describe ServiceGatewayClient do
+    let(:gateway_url) { 'http://gateway.example.com' }
+    let(:token) { 'mytoken' }
+    let(:timeout) { 10 }
+    let(:request_id) { SecureRandom.uuid }
+
+    let(:http_client) { double(:http_client) }
+
+    subject(:client) do
+      ServiceGatewayClient.new(gateway_url, token, timeout, request_id)
+    end
+
+    before do
+      ServiceGatewayClient::HttpClient.stub(:new).and_return(http_client)
+    end
+
+    describe '#initialize' do
+      it 'properly instantiates the http client' do
+        ServiceGatewayClient::HttpClient.should_receive(:new).
+          with(gateway_url, token, timeout, request_id).
+          and_return(http_client)
+
+        ServiceGatewayClient.new(gateway_url, token, timeout, request_id)
+      end
+    end
+
+    describe '#provision' do
+      it 'sends a POST request to the correct endpoint' do
+        http_client.should_receive(:perform_request).
+          with(:post, '/gateway/v1/configurations', an_instance_of(GatewayProvisionRequest)).
+          and_return({
+            service_id: '456',
+            configuration: {setting: true},
+            credentials: {user: 'admin', pass: 'secret'}
+          }.to_json)
+
+        response = client.provision(unique_id: '123', name: 'Example Service')
+        expect(response.service_id).to be == '456'
+        expect(response.configuration).to be == {'setting' => true}
+        expect(response.credentials).to be == {'user' => 'admin', 'pass' => 'secret'}
+      end
+    end
+
+    describe '#unprovision' do
+      it 'sends a DELETE request to the correct endpoint' do
+        http_client.should_receive(:perform_request).
+          with(:delete, '/gateway/v1/configurations/service-instance-8272')
+
+        client.unprovision(service_id: 'service-instance-8272')
+      end
+    end
+
+    describe '#bind' do
+      it 'sends a POST request to the correct endpoint' do
+        service_id = '123'
+        http_client.should_receive(:perform_request).
+          with(:post, "/gateway/v1/configurations/#{service_id}/handles", an_instance_of(GatewayBindRequest)).
+          and_return({
+            service_id: service_id,
+            configuration: {setting: true},
+            credentials: {user: 'admin', pass: 'secret'}
+          }.to_json)
+
+        response = client.bind(service_id: service_id)
+        expect(response.service_id).to be == service_id
+        expect(response.configuration).to be == {'setting' => true}
+        expect(response.credentials).to be == {'user' => 'admin', 'pass' => 'secret'}
+      end
+    end
+
+    describe '#unbind' do
+      it 'sends a DELETE request to the correct endpoint' do
+        service_id = '123'
+        handle_id = '456'
+        http_client.should_receive(:perform_request).
+          with(:delete, "/gateway/v1/configurations/#{service_id}/handles/#{handle_id}", an_instance_of(GatewayUnbindRequest))
+
+        client.unbind(service_id: service_id, handle_id: handle_id, binding_options: {})
+      end
+    end
   end
-end
-describe VCAP::Services::Api::ServiceGatewayClient do
-  describe '#perform_request' do
-    before :all do
-      @url = "http://localhost"
-      @token = "mytoken"
-      @timeout = 10
-    end
 
-    it "should use async http client when EM is running" do
-      client = VCAP::Services::Api::ServiceGatewayClient.new(@url, @token, @timeout)
-      EM.should_receive(:reactor_running?).and_return true
+  describe ServiceGatewayClient::HttpClient do
+    describe '#perform_request' do
+      let(:url) { 'http://localhost' }
+      let(:token) { 'mytoken' }
+      let(:timeout) { 10 }
+      let(:request_id) { "request-id-beef" }
 
-      path = "/path1"
-      resp = mock("resq")
-      message = "data"
-      resp.should_receive(:response).and_return(message)
-      resp.should_receive(:error).and_return []
+      let(:http_client) { described_class.new(url, token, timeout, request_id) }
 
-      resp_header = mock("resq_header")
-      resp_header.should_receive(:status).and_return(200)
-      resp.should_receive(:response_header).and_return resp_header
-      http_method = :get
+      it 'makes GET requests' do
+        request = stub_request(:get, 'http://localhost/path1').
+          with(headers: {
+            "X-VCAP-Request-ID" => request_id,
+            VCAP::Services::Api::GATEWAY_TOKEN_HEADER => token,
+          }).
+          to_return(status: 200, body: 'data')
 
-      VCAP::Services::Api::AsyncHttpRequest.should_receive(:fibered).with(anything, @token, http_method, @timeout, anything).and_return resp
+        result = http_client.perform_request(:get, '/path1')
+        result.should == 'data'
 
-      result = client.perform_request(http_method, path)
-      result.should == message
-    end
+        request.should have_been_made
+      end
 
-    it "should use net/http client when EM is not running" do
-      client = VCAP::Services::Api::ServiceGatewayClient.new(@url, @token, @timeout)
-      EM.should_receive(:reactor_running?).and_return nil
+      context "when request_id is nil" do
+        it "makes POST requests without the X-VCAP-Request-ID header" do
+          client = described_class.new(url, token, timeout, nil)
 
-      path = "/path1"
-      resp = mock("resq")
-      message = "data"
-      resp.should_receive(:body).and_return(message)
-      resp.should_receive(:code).and_return 200
-      resp.should_receive(:start).and_return resp
+          request = stub_request(:post, 'http://localhost/path1').
+            with(headers: {
+              VCAP::Services::Api::GATEWAY_TOKEN_HEADER => token,
+            }).
+            to_return(status: 200, body: 'data')
 
-      http_method = :get
+          result = client.perform_request(:post, '/path1')
+          result.should == 'data'
 
-      Net::HTTP.should_receive(:new).with("localhost", 80).and_return resp
+          request.should have_been_made
+        end
+      end
 
-      result = client.perform_request(http_method, path)
-      result.should == message
-    end
+      it 'makes POST requests' do
+        request = stub_request(:post, 'http://localhost/path1').
+          with(headers: {
+            "X-VCAP-Request-ID" => "request-id-beef",
+            VCAP::Services::Api::GATEWAY_TOKEN_HEADER => token,
+          }).
+          to_return(status: 200, body: 'data')
 
+        result = http_client.perform_request(:post, '/path1')
+        result.should == 'data'
 
-    it "should should raise error with none 200 response" do
-      client = VCAP::Services::Api::ServiceGatewayClient.new(@url, @token, @timeout)
-      EM.should_receive(:reactor_running?).any_number_of_times.and_return nil
+        request.should have_been_made
+      end
 
-      path = "/path1"
-      resp = mock("resq")
-      resp.should_receive(:body).and_return(
-        {:code => 40400, :description=> "not found"}.to_json,
-        {:code => 50300, :description=> "internal"}.to_json,
-        {:code => 50100, :description=> "not done yet"}.to_json,
-        {:bad_response => "foo"}.to_json,
-      )
-      resp.should_receive(:code).and_return(404, 503, 500, 500)
-      resp.should_receive(:start).any_number_of_times.and_return resp
+      it 'makes PUT requests' do
+        request = stub_request(:put, 'http://localhost/path1').
+          with(headers: {
+            "X-VCAP-Request-ID" => "request-id-beef",
+            VCAP::Services::Api::GATEWAY_TOKEN_HEADER => token,
+          }).
+          to_return(status: 200, body: 'data')
 
-      http_method = :get
+        result = http_client.perform_request(:put, '/path1')
+        result.should == 'data'
 
-      Net::HTTP.should_receive(:new).with("localhost", 80).any_number_of_times.and_return resp
+        request.should have_been_made
+      end
 
-      expect {client.perform_request(http_method, path)}.should raise_error(VCAP::Services::Api::ServiceGatewayClient::NotFoundResponse)
-      expect {client.perform_request(http_method, path)}.should raise_error(VCAP::Services::Api::ServiceGatewayClient::GatewayInternalResponse)
-      expect {client.perform_request(http_method, path)}.should raise_error(VCAP::Services::Api::ServiceGatewayClient::ErrorResponse, /not done yet/)
-      expect {client.perform_request(http_method, path)}.should raise_error(VCAP::Services::Api::ServiceGatewayClient::UnexpectedResponse)
+      it 'makes DELETE requests' do
+        request = stub_request(:delete, 'http://localhost/path1').
+          with(headers: {
+            "X-VCAP-Request-ID" => "request-id-beef",
+            VCAP::Services::Api::GATEWAY_TOKEN_HEADER => token,
+          }).
+          to_return(status: 200, body: 'data')
+
+        result = http_client.perform_request(:delete, '/path1')
+        result.should == 'data'
+
+        request.should have_been_made
+      end
+
+      def self.it_raises_an_exception_when(opts)
+        expected_exception = opts.fetch(:exception)
+        response_status_code = opts.fetch(:response_status)
+
+        let(:error_code) { rand(5000) }
+        let(:error_description) { SecureRandom.uuid }
+        let(:backtrace) { ["/dev/null:20:in `catch'", "/dev/null:69:in `start'", "/dev/null:12:in `<main>'"]}
+        let(:types) { ["ServiceError", "StandardError", "Exception"]}
+
+        context "when the response status is #{response_status_code}" do
+          before do
+            stub_request(:any, /.*/).to_return(
+              status: response_status_code,
+              body: {
+                code: error_code,
+                description: error_description,
+                error: {
+                  backtrace: backtrace,
+                  types: types
+                }
+              }.to_json
+            )
+          end
+
+          it "raises a #{expected_exception.name} for get requests" do
+            expect {
+              http_client.perform_request(:get, url)
+            }.to raise_error(expected_exception) { |exception|
+              exception.status.should == response_status_code
+              exception.error.code.should == error_code
+              exception.error.description.should == error_description
+              exception.error.error.fetch('backtrace').should == backtrace
+              exception.error.error.fetch('types').should == types
+            }
+          end
+
+          it "raises a #{expected_exception.name} for post requests" do
+            expect {
+              http_client.perform_request(:post, url)
+            }.to raise_error(expected_exception) { |exception|
+              exception.status.should == response_status_code
+              exception.error.code.should == error_code
+              exception.error.description.should == error_description
+              exception.error.error.fetch('backtrace').should == backtrace
+              exception.error.error.fetch('types').should == types
+            }
+          end
+
+          it "raises a #{expected_exception.name} for put requests" do
+            expect {
+              http_client.perform_request(:put, url)
+            }.to raise_error(expected_exception) { |exception|
+              exception.status.should == response_status_code
+              exception.error.code.should == error_code
+              exception.error.description.should == error_description
+              exception.error.error.fetch('backtrace').should == backtrace
+              exception.error.error.fetch('types').should == types
+            }
+          end
+
+          it "raises a #{expected_exception.name} for delete requests" do
+            expect {
+              http_client.perform_request(:delete, url)
+            }.to raise_error(expected_exception) { |exception|
+              exception.status.should == response_status_code
+              exception.error.code.should == error_code
+              exception.error.description.should == error_description
+              exception.error.error.fetch('backtrace').should == backtrace
+              exception.error.error.fetch('types').should == types
+            }
+          end
+        end
+      end
+
+      it_raises_an_exception_when(response_status: 404, exception: ServiceGatewayClient::NotFoundResponse)
+      it_raises_an_exception_when(response_status: 503, exception: ServiceGatewayClient::GatewayInternalResponse)
+
+      context 'when the response status is an unhandled, non-200' do
+        it_raises_an_exception_when(response_status: 400, exception: ServiceGatewayClient::ErrorResponse)
+        it_raises_an_exception_when(response_status: 500, exception: ServiceGatewayClient::ErrorResponse)
+        it_raises_an_exception_when(response_status: 502, exception: ServiceGatewayClient::ErrorResponse)
+        # ... you could test any other non-200 example not listed above
+
+        context "when the response is not valid JSON" do
+          let(:response_status_code) { 500 }
+          let(:response_body) { "I am not JSON" }
+          before do
+            stub_request(:get, /.*/).to_return(status: response_status_code, body: response_body)
+          end
+
+          it "raises an UnexpectedResponse exception" do
+            expect {
+              http_client.perform_request(:get, url)
+            }.to raise_error(ServiceGatewayClient::UnexpectedResponse) { |exception|
+              exception.message.should =~ /status code: #{response_status_code}. response body: #{response_body}$/
+            }
+          end
+        end
+      end
     end
   end
 end

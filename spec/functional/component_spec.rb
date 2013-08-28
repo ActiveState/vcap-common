@@ -2,11 +2,19 @@
 require "spec_helper"
 require "vcap/spec/em"
 require "em-http/version"
+require 'webmock'
 
 describe VCAP::Component do
   include VCAP::Spec::EM
 
-  let(:nats) { NATS.connect(:uri => "nats://localhost:4223", :autostart => true) }
+  before :each do
+    WebMock.allow_net_connect!
+  end
+
+  let(:nats) do
+    NATS.connect(:uri => "nats://localhost:4223", :autostart => true)
+  end
+
   let(:default_options) { { :type => "type", :nats => nats } }
 
   after :all do
@@ -30,7 +38,7 @@ describe VCAP::Component do
   end
 
   it "should listen for discovery messages" do
-    em do
+    em(timeout: 2.0) do
       VCAP::Component.register(default_options)
 
       nats.request("vcap.component.discover") do |msg|
@@ -58,6 +66,35 @@ describe VCAP::Component do
     end
   end
 
+  describe 'process information' do
+    before do
+      VCAP::Component.instance_eval do
+        remove_instance_variable(:@last_varz_update) if instance_variable_defined?(:@last_varz_update)
+      end
+
+      em do
+        VCAP::Component.register(:nats => nats)
+        done
+      end
+    end
+
+    it 'includes memory information' do
+      Vmstat.stub_chain(:memory, :active_bytes).and_return 75
+      Vmstat.stub_chain(:memory, :wired_bytes).and_return 25
+      Vmstat.stub_chain(:memory, :inactive_bytes).and_return 660
+      Vmstat.stub_chain(:memory, :free_bytes).and_return 340
+
+      VCAP::Component.updated_varz[:mem_used_bytes].should == 100
+      VCAP::Component.updated_varz[:mem_free_bytes].should == 1000
+    end
+
+    it 'includes CPU information' do
+      Vmstat.stub_chain(:load_average, :one_minute).and_return 2.0
+
+      VCAP::Component.updated_varz[:cpu_load_avg].should == 2.0
+    end
+  end
+
   describe 'suppression of keys in config information in varz' do
     it 'should suppress certain keys in the top level config' do
       em do
@@ -67,7 +104,8 @@ describe VCAP::Component do
           :keys => 'sekret!keys',
           :password => 'crazy',
           :pass => 'crazy',
-          :database_environment => { :stuff => 'should not see' }
+          :database_environment => { :stuff => 'should not see' },
+          :token => 't0ken'
         }
         VCAP::Component.register(options)
         done
@@ -84,7 +122,7 @@ describe VCAP::Component do
           :password => 'crazy',
           :pass => 'crazy',
           :database_environment => { :stuff => 'should not see' },
-          :this_is_ok => { :password => 'sekret!', :pass => 'sekret!', :test => 'ok'}
+          :this_is_ok => { :password => 'sekret!', :pass => 'sekret!', :test => 'ok', :token => 't0ken'}
         }
         VCAP::Component.register(options)
         done
@@ -102,7 +140,7 @@ describe VCAP::Component do
           :password => 'crazy',
           :pass => 'crazy',
           :database_environment => { :stuff => 'should not see' },
-          :this_is_ok => { :password => 'sekret!', :pass => 'sekret!', :mysql => 'sekret!', :test => 'ok'}
+          :this_is_ok => { :password => 'sekret!', :pass => 'sekret!', :mysql => 'sekret!', :test => 'ok', :token => 't0ken'}
         }
         VCAP::Component.register(options)
 
@@ -113,7 +151,7 @@ describe VCAP::Component do
           :password => 'crazy',
           :pass => 'crazy',
           :database_environment => { :stuff => 'should not see' },
-          :this_is_ok => { :password => 'sekret!', :pass => 'sekret!', :mysql => 'sekret!', :test => 'ok'}
+          :this_is_ok => { :password => 'sekret!', :pass => 'sekret!', :mysql => 'sekret!', :test => 'ok', :token => 't0ken'}
         })
         done
       end

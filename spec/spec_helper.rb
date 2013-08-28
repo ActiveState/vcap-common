@@ -1,18 +1,17 @@
 # Copyright (c) 2009-2011 VMware, Inc.
 $:.unshift File.expand_path("../../lib", __FILE__)
-$:.unshift File.expand_path("../../lib/vcap/user_pools", __FILE__)
 require "bundler"
 Bundler.require(:default, :spec)
 
 require "vcap/common"
 require "vcap/component"
 require "vcap/rolling_metric"
-require "vcap/json_schema"
 require "vcap/subprocess"
 require "vcap/process_utils"
 require "vcap/config"
 require "vcap/priority_queue"
 require 'vcap/quota'
+require 'vcap/sorted_set_utils'
 require 'services/api/clients/service_gateway_client'
 require 'services/api/async_requests'
 require 'benchmark'

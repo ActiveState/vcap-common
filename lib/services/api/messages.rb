@@ -2,6 +2,7 @@
 require 'uri'
 
 require 'services/api/const'
+require 'membrane'
 require 'json_message'
 
 module VCAP
@@ -17,21 +18,40 @@ module VCAP
       # NB: Deleting an offering takes all args in the url
       #
       class ServiceOfferingRequest < JsonMessage
-        required :label,       SERVICE_LABEL_REGEX
-        required :url,         URI::regexp(%w(http https))
+        required :label,        SERVICE_LABEL_REGEX
+        required :url,          URI::regexp(%w(http https))
+        required :supported_versions, [String]
+        required :version_aliases, Hash
 
-        optional :description, String
-        optional :info_url,    URI::regexp(%w(http https))
-        optional :tags,        [String]
-        optional :plans,       [String]
+        optional :description,  String
+        optional :info_url,     URI::regexp(%w(http https))
+        optional :tags,         [String]
+        optional :plan_details do
+          [
+            {
+              "name" => String,
+              "free" => bool,
+              optional("description") => String,
+              optional("extra") => String,
+              optional("unique_id") => String,
+            }
+          ]
+        end
+        optional :plans,        [String]
+        optional :plan_descriptions
+        optional :cf_plan_id
         optional :plan_options
         optional :binding_options
         optional :acls
         optional :active
-        optional :timeout,     Integer
+        optional :timeout,      Integer
+        optional :provider,     String
+        optional :default_plan, String
+        optional :extra,        String
+        optional :unique_id,    String
       end
 
-      class BrokeredServiceOfferingRequest < JsonMessage
+      class ProxiedServiceOfferingRequest < JsonMessage
         required :label,        SERVICE_LABEL_REGEX
         required :options,      [{"name" => String, "credentials" => Hash}]
         optional :description,  String
@@ -43,12 +63,18 @@ module VCAP
         required :credentials
       end
 
-      class ListHandlesResponse < JsonMessage
-        required :handles, [::JsonSchema::WILDCARD]
+      class HandleUpdateRequestV2 < JsonMessage
+        required :token, String
+        required :gateway_data
+        required :credentials
       end
 
-      class ListBrokeredServicesResponse < JsonMessage
-        required :brokered_services, [{"label" => String, "description" => String, "acls" => {"users" => [String], "wildcards" => [String]}}]
+      class ListHandlesResponse < JsonMessage
+        required :handles, [Object]
+      end
+
+      class ListProxiedServicesResponse < JsonMessage
+        required :proxied_services, [{"label" => String, "description" => String, "acls" => {"users" => [String], "wildcards" => [String]}}]
       end
 
       #
@@ -59,23 +85,32 @@ module VCAP
         required :label, SERVICE_LABEL_REGEX
         required :name,  String
         required :plan,  String
+        required :version, String
 
         optional :plan_option
+        optional :provider, String
       end
 
       class GatewayProvisionRequest < JsonMessage
-        required :label, SERVICE_LABEL_REGEX
-        required :name,  String
-        required :plan,  String
-        required :email, String
+        required :unique_id, String
+        required :name,      String
+        optional :email,     String
 
+        optional :provider,          String
+        optional :label,             String
+        optional :plan,              String
+        optional :version,           String
+        optional :organization_guid, String
+        optional :space_guid,        String
         optional :plan_option
       end
 
-      class GatewayProvisionResponse < JsonMessage
+      # Provision and bind response use the same format
+      class GatewayHandleResponse < JsonMessage
         required :service_id, String
-        required :data
+        required :configuration
         required :credentials
+        optional :dashboard_url, String
       end
 
       #
@@ -105,12 +140,6 @@ module VCAP
         required :binding_token, String
       end
 
-      class GatewayBindResponse < JsonMessage
-        required :service_id, String
-        required :configuration
-        required :credentials
-      end
-
       # Bind app_name using binding_token
       class BindExternalRequest < JsonMessage
         required :binding_token, String
@@ -126,10 +155,33 @@ module VCAP
         required :snapshot_id,  String
         required :date,  String
         required :size,  Integer
+        required :name,  String
       end
 
       class SnapshotList < JsonMessage
-        required :snapshots,  [::JsonSchema::WILDCARD]
+        required :snapshots,  [Object]
+      end
+
+      class CreateSnapshotV2Request < JsonMessage
+        required :name, /./
+      end
+
+      class SnapshotV2 < JsonMessage
+        required :snapshot_id, String
+        required :name,  String
+        required :state, String
+        required :size,  Integer
+
+        optional :created_time,  String
+        optional :restored_time, String
+      end
+
+      class SnapshotListV2 < JsonMessage
+        required :snapshots, [Object]
+      end
+
+      class UpdateSnapshotNameRequest < JsonMessage
+        required :name, String
       end
 
       class Job < JsonMessage
@@ -138,7 +190,7 @@ module VCAP
         required :start_time, String
         optional :description, String
         optional :complete_time, String
-        optional :result, ::JsonSchema::WILDCARD
+        optional :result, Object
       end
 
       class SerializedURL < JsonMessage
@@ -152,6 +204,7 @@ module VCAP
       class ServiceErrorResponse < JsonMessage
         required :code, Integer
         required :description, String
+        optional :error, Hash
       end
     end
   end
