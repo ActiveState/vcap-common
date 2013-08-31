@@ -1,5 +1,5 @@
 #
-# Makefile for stackato-vcap-vcap-common
+# Makefile for stackato-vcap-common-ng
 #
 # Used solely by packaging systems.
 # Must support targets "all", "install", "uninstall".
@@ -12,7 +12,7 @@
 # is not intended to be relocatable.
 #
 
-NAME=stackato-vcap-vcap-common
+NAME=stackato-vcap-common-ng
 
 INSTALLHOME=/home/stackato
 INSTALLBASE=$(INSTALLHOME)/stackato
