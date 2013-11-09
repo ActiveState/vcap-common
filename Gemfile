@@ -6,4 +6,4 @@ gemspec
 
 #TODO -- Mirror these locally
 gem "vcap-concurrency", :github => "cloudfoundry/vcap-concurrency"
-gem "cf-message-bus", :github => "cloudfoundry/cf-message-bus"
+gem "cf-message-bus", :github => "ActiveState/cf-message-bus", :branch => "stackato"
