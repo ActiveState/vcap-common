@@ -1,2 +1,4 @@
 /*.gem
 .idea/
+.bundle
+.ruby-version
