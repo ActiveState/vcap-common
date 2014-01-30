@@ -2,3 +2,4 @@
 .idea/
 .bundle
 .ruby-version
+Gemfile.lock

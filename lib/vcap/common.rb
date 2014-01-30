@@ -1,12 +1,17 @@
 # Copyright (c) 2009-2011 VMware, Inc.
 require 'fileutils'
 require 'socket'
+<<<<<<< HEAD
 require 'securerandom'
+=======
+require 'uuidtools'
+>>>>>>> c731a3eed1bb7630e834f8918a5b2401f8d321ba
 
 # VMware's Cloud Application Platform
 
 module VCAP
-  #XXX: what is this?
+
+  WINDOWS = RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/
   A_ROOT_SERVER = '198.41.0.4'
 
   # TODO: this function is no longer needed; can be removed after
@@ -24,7 +29,7 @@ module VCAP
      ifconfig_input = `/sbin/ifconfig -a`
      interfaces = {}
      interface_strings = ifconfig_input.split("\n\n")
-          
+
      interface_strings.each do |interface_string|
        interface = {}
        interface[:name] = /^(\w+)\s/.match(interface_string)[1]
@@ -56,16 +61,18 @@ module VCAP
   end
 
   def self.secure_uuid
-    File.open('/dev/urandom') { |x| x.read(16).unpack('H*')[0] }
+    result = UUIDTools::UUID.random_create.to_s.delete('-')
   end
 
   def self.grab_ephemeral_port
     socket = TCPServer.new('0.0.0.0', 0)
     socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true)
-    Socket.do_not_reverse_lookup = true
+    orig, Socket.do_not_reverse_lookup = Socket.do_not_reverse_lookup, true
     port = socket.addr[1]
     socket.close
     return port
+  ensure
+    Socket.do_not_reverse_lookup = orig
   end
 
   def self.uptime_string(delta)
@@ -93,6 +100,8 @@ module VCAP
       `hwprefs cpu_count`.strip.to_i
     elsif RUBY_PLATFORM =~ /freebsd|netbsd/
       `sysctl hw.ncpu`.strip.to_i
+    elsif WINDOWS
+      (ENV['NUMBER_OF_PROCESSORS'] || 1).to_i
     else
       return 1 # unknown..
     end
@@ -138,7 +147,11 @@ module VCAP
 
   def self.process_running?(pid)
     return false unless pid && (pid > 0)
-    output = %x[ps -o rss= -p #{pid}]
+    if WINDOWS
+      output = %x[tasklist /nh /fo csv /fi "pid eq #{pid}"]
+    else
+      output = %x[ps -o rss= -p #{pid}]
+    end
     return true if ($? == 0 && !output.empty?)
     # fail otherwise..
     return false

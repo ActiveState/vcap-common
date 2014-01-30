@@ -6,7 +6,7 @@ require "nats/client"
 require "set"
 require "thin"
 require "yajl"
-require "vmstat"
+require "vcap/stats"
 
 module VCAP
 
@@ -47,42 +47,46 @@ module VCAP
   class Component
 
     # We will suppress these from normal varz reporting by default.
-    CONFIG_SUPPRESS = Set.new([:mbus, :service_mbus, :keys, :database_environment, :password, :pass, :token])
+    CONFIG_SUPPRESS = Set.new([:message_bus_servers, :mbus, :service_mbus, :keys, :database_environment, :password, :pass, :token])
 
-    class << self
-      class SafeHash < BasicObject
-        def initialize(hash = {})
-          @hash = hash
-        end
+    class SafeHash < BasicObject
+      def initialize(hash = {})
+        @hash = hash
+      end
 
-        def threadsafe!
-          @monitor = ::Monitor.new
-        end
+      def class
+        SafeHash
+      end
 
-        def synchronize
-          if @monitor
-            @monitor.synchronize do
-              begin
-                @thread = ::Thread.current
-                yield
-              ensure
-                @thread = nil
-              end
+      def threadsafe!
+        @monitor = ::Monitor.new
+      end
+
+      def synchronize
+        if @monitor
+          @monitor.synchronize do
+            begin
+              @thread = ::Thread.current
+              yield
+            ensure
+              @thread = nil
             end
-          else
-            yield
           end
-        end
-
-        def method_missing(sym, *args, &blk)
-          if @monitor && @thread != ::Thread.current
-            ::Kernel.raise "Lock required"
-          end
-
-          @hash.__send__(sym, *args, &blk)
+        else
+          yield
         end
       end
 
+      def method_missing(sym, *args, &blk)
+        if @monitor && @thread != ::Thread.current
+          ::Kernel.raise "Lock required"
+        end
+
+        @hash.__send__(sym, *args, &blk)
+      end
+    end
+
+    class << self
       def varz
         @varz ||= SafeHash.new
       end
@@ -93,8 +97,7 @@ module VCAP
         @last_varz_update ||= 0
 
         if Time.now.to_f - @last_varz_update >= 1
-          # Grab current cpu and memory usage
-          rss, pcpu = `ps -o rss=,pcpu= -p #{Process.pid}`.split
+          rss, pcpu = Stats.process_memory_and_cpu
 
           # Update varz
           varz.synchronize do
@@ -104,11 +107,10 @@ module VCAP
             varz[:mem] = rss.to_i
             varz[:cpu] = pcpu.to_f
 
-            memory = Vmstat.memory
-            varz[:mem_used_bytes] = memory.active_bytes + memory.wired_bytes
-            varz[:mem_free_bytes] = memory.inactive_bytes + memory.free_bytes
+            varz[:mem_used_bytes] = Stats.memory_used_bytes
+            varz[:mem_free_bytes] = Stats.memory_free_bytes
 
-            varz[:cpu_load_avg] = Vmstat.load_average.one_minute
+            varz[:cpu_load_avg] = Stats.cpu_load_average
 
             # Return duplicate while holding lock
             return varz.dup
@@ -230,6 +232,7 @@ module VCAP
         clear_level(config)
         config
       end
+
     end
   end
 end

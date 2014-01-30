@@ -82,9 +82,9 @@ module VCAP
       # NB: Unprovision takes all args in the url
       #
       class CloudControllerProvisionRequest < JsonMessage
-        required :label, SERVICE_LABEL_REGEX
-        required :name,  String
-        required :plan,  String
+        required :label,   SERVICE_LABEL_REGEX
+        required :name,    String
+        required :plan,    String
         required :version, String
 
         optional :plan_option
@@ -92,10 +92,10 @@ module VCAP
       end
 
       class GatewayProvisionRequest < JsonMessage
-        required :unique_id, String
-        required :name,      String
-        optional :email,     String
+        required :unique_id,         String
+        required :name,              String
 
+        optional :email,             String
         optional :provider,          String
         optional :label,             String
         optional :plan,              String
@@ -107,10 +107,10 @@ module VCAP
 
       # Provision and bind response use the same format
       class GatewayHandleResponse < JsonMessage
-        required :service_id, String
+        required :service_id,       String
         required :configuration
         required :credentials
-        optional :dashboard_url, String
+        optional :dashboard_url,    String
         optional :syslog_drain_url, String
       end
 
@@ -128,6 +128,8 @@ module VCAP
         required :label,         String
         required :email,         String
         required :binding_options
+
+        optional :app_id,        String
       end
 
       class GatewayUnbindRequest < JsonMessage
@@ -153,10 +155,10 @@ module VCAP
       end
 
       class Snapshot < JsonMessage
-        required :snapshot_id,  String
-        required :date,  String
-        required :size,  Integer
-        required :name,  String
+        required :snapshot_id, String
+        required :date,        String
+        required :size,        Integer
+        required :name,        String
       end
 
       class SnapshotList < JsonMessage
@@ -168,10 +170,10 @@ module VCAP
       end
 
       class SnapshotV2 < JsonMessage
-        required :snapshot_id, String
-        required :name,  String
-        required :state, String
-        required :size,  Integer
+        required :snapshot_id,   String
+        required :name,          String
+        required :state,         String
+        required :size,          Integer
 
         optional :created_time,  String
         optional :restored_time, String
@@ -186,12 +188,12 @@ module VCAP
       end
 
       class Job < JsonMessage
-        required :job_id,  String
-        required :status,  String
-        required :start_time, String
-        optional :description, String
+        required :job_id,        String
+        required :status,        String
+        required :start_time,    String
+        optional :description,   String
         optional :complete_time, String
-        optional :result, Object
+        optional :result,        Object
       end
 
       class SerializedURL < JsonMessage
@@ -199,13 +201,13 @@ module VCAP
       end
 
       class SerializedData < JsonMessage
-        required :data,  String
+        required :data, String
       end
 
       class ServiceErrorResponse < JsonMessage
-        required :code, Integer
+        required :code,        Integer
         required :description, String
-        optional :error, Hash
+        optional :error,       Hash
       end
     end
   end

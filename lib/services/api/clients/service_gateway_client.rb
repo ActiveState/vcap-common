@@ -35,7 +35,16 @@ module VCAP::Services::Api
       end
 
       def to_s
-        "Reponse status:#{status},error:[#{error.extract}]"
+        "#{self.class.name}: #{error.description}"
+      end
+
+      def to_h
+        {
+          'error' => error.extract(stringify_keys: true).merge(
+            'backtrace' => backtrace,
+            'types' => self.class.ancestors.map(&:name) - Exception.ancestors.map(&:name)
+          )
+        }
       end
     end
 
@@ -160,7 +169,12 @@ module VCAP::Services::Api
         request = klass.new(path, headers)
         request.body = msg.encode
 
-        response = Net::HTTP.new(uri.host, uri.port).start do |http|
+        opts = {}
+        if uri.scheme == "https"
+          opts[:use_ssl] = true
+        end
+
+        response = Net::HTTP.start(uri.host, uri.port, opts) do |http|
           http.request(request)
         end
 
