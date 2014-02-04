@@ -97,7 +97,7 @@ module VCAP
     if RUBY_PLATFORM =~ /linux/
       return `cat /proc/cpuinfo | grep processor | wc -l`.to_i
     elsif RUBY_PLATFORM =~ /darwin/
-      `hwprefs cpu_count`.strip.to_i
+      `sysctl -n hw.ncpu`.strip.to_i
     elsif RUBY_PLATFORM =~ /freebsd|netbsd/
       `sysctl hw.ncpu`.strip.to_i
     elsif WINDOWS
@@ -106,7 +106,6 @@ module VCAP
       return 1 # unknown..
     end
   rescue
-    # hwprefs doesn't always exist, and so the block above can fail.
     # In any case, let's always assume that there is 1 core
     1
   end
