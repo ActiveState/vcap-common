@@ -1,11 +1,7 @@
 # Copyright (c) 2009-2011 VMware, Inc.
 require 'fileutils'
 require 'socket'
-<<<<<<< HEAD
-require 'securerandom'
-=======
 require 'uuidtools'
->>>>>>> c731a3eed1bb7630e834f8918a5b2401f8d321ba
 
 # VMware's Cloud Application Platform
 
