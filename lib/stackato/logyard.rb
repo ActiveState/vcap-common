@@ -38,16 +38,30 @@ module Stackato
       logger.info("Done registering with logyard.")  
     end
 
-    def self.report_event(event, message, instance_index, user, app)
-      name = app[:name]
-      event = {
+    # 
+    def self.make_instance_identifier(user, app, instance_index)
+      return {
         :user => user,
         :app => app,
-        :event => event,
-        :instance_index => instance_index,
-        :message => message,
+        :instance_index => instance_index
       }
-      Steno.logger("cc.logyard").info("TIMELINE #{event.to_json}")
+    end
+
+    def self.report_event(event_name, message, instance_identifier)
+      # sanity check
+      unless instance_identifier.is_a?(Hash)
+        raise "instance_identifier must be a Hash; not #{instance_identifier}"
+      end
+      [:user, :app, :instance_index].each do |key|
+        unless instance_identifier.has_key? key
+          raise "instance_identifier is missing key #{key}"
+        end
+      end
+        
+      event = instance_identifier.dup
+      event[:event] = event_name
+      event[:message] = message
+      Steno.logger("common.logyard").info("TIMELINE #{event.to_json}")
     end
     
   end
