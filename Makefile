@@ -39,3 +39,8 @@ uninstall:
 
 clean:
 	@ true
+
+
+dev-push:
+	rsync -rtv --exclude .stackato-pkg --exclude .git \
+		. stackato@${TARGET}:/s/code/common
