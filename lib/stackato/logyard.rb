@@ -13,7 +13,12 @@ module Stackato
         @@logyard_uid = File.open('/tmp/logyard.uid', 'r') { |f| f.read.strip } rescue nil
         break if @@logyard_uid
       end
+      @apptail_nats_msg_prefix = "logyard.#{@@logyard_uid}"
       logger.info("logyard #{@@logyard_uid} detected")
+    end
+
+    def self.apptail_nats_msg_prefix
+      @apptail_nats_msg_prefix
     end
 
     def self.register_docker_logs_with_logyard(options = {})
@@ -32,7 +37,7 @@ module Stackato
        :rootpath => options[:rootfs],
        :logfiles => options[:logfiles],
       }
-      key = "logyard.#{@@logyard_uid}.newinstance"
+      key = "#{apptail_nats_msg_prefix}.newinstance"
       logger.info("Publishing to #{key}: #{msg}")
       options[:nats].publish(key, msg)
       logger.info("Done registering with logyard.")  
