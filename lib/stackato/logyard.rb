@@ -2,19 +2,23 @@
 
 module Stackato
   class Logyard
-    @@logyard_uid = nil
 
-    def self.dea_startup_hook
+    def self.get_logyard_uid
       # XXX: this shouldn't be mandatory, but unfortunately dea's uuid is not
       # stored locally for logyard to retrieve from. so we go the other way
       # around (storing logyard's uuid locally) just like fence does.
       logger.info("Waiting for logyard...")
       loop do
-        @@logyard_uid = File.open('/tmp/logyard.uid', 'r') { |f| f.read.strip } rescue nil
-        break if @@logyard_uid
+        uid = File.open('/tmp/logyard.uid', 'r') { |f| f.read.strip } rescue nil
+        break if uid
       end
-      @apptail_nats_msg_prefix = "logyard.#{@@logyard_uid}"
-      logger.info("logyard #{@@logyard_uid} detected")
+      uid
+    end
+
+    def self.dea_startup_hook
+      logyard_uid = get_logyard_uid
+      @apptail_nats_msg_prefix = "logyard.#{logyard_uid}"
+      logger.info("logyard #{logyard_uid} detected")
     end
 
     def self.apptail_nats_msg_prefix
