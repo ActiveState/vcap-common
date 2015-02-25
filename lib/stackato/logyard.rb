@@ -8,6 +8,7 @@ module Stackato
       # stored locally for logyard to retrieve from. so we go the other way
       # around (storing logyard's uuid locally) just like fence does.
       logger.info("Waiting for logyard...")
+      uid = nil
       loop do
         uid = File.open('/tmp/logyard.uid', 'r') { |f| f.read.strip } rescue nil
         break if uid
