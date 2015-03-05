@@ -1,6 +1,16 @@
 require "spec_helper"
 
 describe VCAP do
+  describe ".local_ip" do
+    it "returns an IP address" do
+      expect(VCAP.local_ip).to match(/^\d+\.\d+\.\d+\.\d+$/)
+    end
+
+    it "does not return 127.0.0.1" do
+      expect(VCAP.local_ip).not_to eq("127.0.0.1")
+    end
+  end
+
   describe ".uptime_string_to_seconds" do
     it "takes a string in dhms format and returns seconds" do
       uptime_in_seconds = VCAP.uptime_string_to_seconds("0d:0h:0m:0s")

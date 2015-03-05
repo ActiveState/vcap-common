@@ -24,17 +24,21 @@ module VCAP
     begin
      ifconfig_input = `/sbin/ifconfig -a`
      interfaces = {}
-     interface_strings = ifconfig_input.split("\n\n")
+     interface_strings = ifconfig_input.scan(/^[a-z].*\n(?:[ \t].*\n)*/)
 
      interface_strings.each do |interface_string|
        interface = {}
-       interface[:name] = /^(\w+)\s/.match(interface_string)[1]
+       interface[:name] = /^([a-z0-9]+):?\s/.match(interface_string)[1]
        begin
          interface[:ip] = /inet addr:(.*?)\s/.match(interface_string)[1]
        rescue
-         interface[:ip] = ""
+         begin
+           interface[:ip] = /inet (.*?)\s/.match(interface_string)[1]
+         rescue
+           interface[:ip] = ""
+         end
        end
-       interfaces[interface[:name]] = interface 
+       interfaces[interface[:name]] = interface
      end
 
      return interfaces
@@ -48,8 +52,8 @@ module VCAP
   # reason is not clear. See commit b3b6a871 in vcap repo.
   def self.local_ip(route = "") # XXX: we discard this
     interfaces = self.ifconfig_hash
-    begin 
-      return interfaces["eth0"][:ip]
+    begin
+      return (interfaces["eth0"] || interfaces["en0"])[:ip]
     rescue
       $stderr.puts "WARN: failed to find local ip address. ifconfig_hash was: #{interfaces}"
       return "127.0.0.1"
