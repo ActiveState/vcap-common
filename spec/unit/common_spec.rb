@@ -134,10 +134,10 @@ describe VCAP do
 
     describe 'invalid pid' do
       it 'should return false with negative pid' do
-        expect(VCAP.process_running?(-5)).to be_false
+        expect(VCAP.process_running?(-5)).to be false
       end
       it 'should return false with nil pid' do
-        expect(VCAP.process_running?(nil)).to be_false
+        expect(VCAP.process_running?(nil)).to be false
       end
     end
 
@@ -149,12 +149,12 @@ describe VCAP do
 
       it 'With a running process' do
         subject.should_receive(:'`').with('ps -o rss= -p 12').and_return('some output')
-        expect(VCAP.process_running?(12)).to be_true
+        expect(VCAP.process_running?(12)).to be true
       end
 
       it 'Without a running process' do
         subject.should_receive(:'`').with('ps -o rss= -p 12').and_return('')
-        expect(VCAP.process_running?(12)).to be_false
+        expect(VCAP.process_running?(12)).to be false
       end
     end
 
@@ -167,12 +167,12 @@ describe VCAP do
 
       it 'With a running process' do
         subject.should_receive(:'`').with('tasklist /nh /fo csv /fi "pid eq 12"').and_return('some output')
-        expect(VCAP.process_running?(12)).to be_true
+        expect(VCAP.process_running?(12)).to be true
       end
 
       it 'Without a running process' do
         subject.should_receive(:'`').with('tasklist /nh /fo csv /fi "pid eq 12"').and_return('')
-        expect(VCAP.process_running?(12)).to be_false
+        expect(VCAP.process_running?(12)).to be false
       end
     end
   end
