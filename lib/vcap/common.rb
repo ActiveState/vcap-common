@@ -26,13 +26,13 @@ module VCAP
     interface_strings = ifconfig_input.split("\n\n")
 
     interface_strings.each do |interface_string|
+      match = /^(\w+)\s/.match(interface_string)
+
+      # udev has given us a non-ascii interface name, skip
+      next unless match
+
       interface = {}
-      begin
-        interface[:name] = /^(\w+)\s/.match(interface_string)[1]
-      rescue
-        # udev has given us a non-ascii interface name, skip
-        next
-      end
+      interface[:name] = match[1]
 
       begin
         interface[:ip] = /inet addr:(.*?)\s/.match(interface_string)[1]
