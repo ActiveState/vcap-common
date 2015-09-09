@@ -21,7 +21,6 @@ module VCAP
   end
 
   def self.ifconfig_hash # why public?
-    begin
      ifconfig_input = `/sbin/ifconfig -a`
      interfaces = {}
      interface_strings = ifconfig_input.split("\n\n")
@@ -44,9 +43,8 @@ module VCAP
      end
 
      return interfaces
-    rescue
-     return ""
-    end
+  rescue
+    return ""
   end
 
   # Stackato note: this was added by us, presumably to make the
