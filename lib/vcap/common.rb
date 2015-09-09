@@ -37,14 +37,14 @@ module VCAP
        begin
          interface[:ip] = /inet addr:(.*?)\s/.match(interface_string)[1]
        rescue
-         interface[:ip] = ""
+         interface[:ip] = ''
        end
-       interfaces[interface[:name]] = interface 
+       interfaces[interface[:name]] = interface
      end
 
      return interfaces
   rescue
-    return ""
+    return ''
   end
 
   # Stackato note: this was added by us, presumably to make the
