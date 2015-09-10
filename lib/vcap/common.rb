@@ -21,26 +21,30 @@ module VCAP
   end
 
   def self.ifconfig_hash # why public?
-    begin
-     ifconfig_input = `/sbin/ifconfig -a`
-     interfaces = {}
-     interface_strings = ifconfig_input.split("\n\n")
+    ifconfig_input = `/sbin/ifconfig -a`
+    interfaces = {}
+    interface_strings = ifconfig_input.split("\n\n")
 
-     interface_strings.each do |interface_string|
-       interface = {}
-       interface[:name] = /^(\w+)\s/.match(interface_string)[1]
-       begin
-         interface[:ip] = /inet addr:(.*?)\s/.match(interface_string)[1]
-       rescue
-         interface[:ip] = ""
-       end
-       interfaces[interface[:name]] = interface 
-     end
+    interface_strings.each do |interface_string|
+      match = /^(\w+)\s/.match(interface_string)
 
-     return interfaces
-    rescue
-     return ""
+      # udev has given us a non-ascii interface name, skip
+      next unless match
+
+      interface = {}
+      interface[:name] = match[1]
+
+      begin
+        interface[:ip] = /inet addr:(.*?)\s/.match(interface_string)[1]
+      rescue
+        interface[:ip] = ''
+      end
+      interfaces[interface[:name]] = interface
     end
+
+    return interfaces
+  rescue
+    return ''
   end
 
   # Stackato note: this was added by us, presumably to make the
