@@ -5,17 +5,12 @@ module Stackato
       # XXX: this shouldn't be mandatory, but unfortunately dea's uuid is not
       # stored locally for apptail to retrieve from. so we go the other way
       # around (storing apptail's uuid locally) just like fence does.
-      uid = File.open('/tmp/apptail.uid', 'r') { |f| f.read.strip } rescue nil
-      if !uid
-        logger.info("Waiting for apptail...")
-        backoff = ExponentialBackoff.new
-        while !uid
-          logger.debug("Waiting #{backoff.wait_time} msec for apptail...")
-          backoff.sleep
-          uid = File.open('/tmp/apptail.uid', 'r') { |f| f.read.strip } rescue nil
-        end
+      logger.info("Waiting for logyard...")
+      uid = nil
+      loop do
+        uid = File.open('/tmp/apptail.uid', 'r') { |f| f.read.strip } rescue nil
+        break if uid
       end
-      logger.info("Use apptail UID #{uid}")
       uid
     end
 
