@@ -41,7 +41,6 @@ module Stackato
        :docker_id => options[:docker_id],
        :rootpath => options[:rootfs],
        :logfiles => options[:logfiles],
-       :docker_streams => options[:docker_streams],
       }
       key = "#{apptail_nats_msg_prefix}.newinstance"
       logger.info("Publishing to #{key}: #{msg}")
